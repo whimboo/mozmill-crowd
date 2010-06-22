@@ -1,0 +1,6 @@
+content   mozmill-crowd                 chrome/content/
+skin      mozmill-crowd   classic/1.0   chrome/skin/
+locale    mozmill-crowd   en-US         chrome/locale/en-US/
+
+
+overlay   chrome://browser/content/browser.xul          chrome://mozmill-crowd/content/browser-overlay.xul

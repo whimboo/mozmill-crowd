@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+
+<!DOCTYPE overlay SYSTEM "chrome://mozmill-crowd/locale/preferences.dtd">
+
+<prefwindow id="mozmill-crowd-preferences"
+            xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+            title="&prefwindow.title;">
+
+  <prefpane id="paneGeneral" label="&paneGeneral.title;">
+
+    <preferences id="generalPreferences">
+
+      <!-- Mozmill tests repository -->
+      <preference id="extensions.mozmill-crowd.repositories.mozmill-tests"
+                  name="extensions.mozmill-crowd.repositories.mozmill-tests"
+                  type="wstring"/>
+      <preference id="extensions.mozmill-crowd.repositores.mozmill-tests.custom"
+                  name="extensions.mozmill-crowd.repositores.mozmill-tests.custom"
+                  type="wstring"/>
+
+      <!-- Results Reporting -->
+      <preference id="extensions.mozmill-crowd.report.send"
+                  name="extensions.mozmill-crowd.report.send"
+                  type="bool"/>
+      <preference id="extensions.mozmill-crowd.report.server"
+                  name="extensions.mozmill-crowd.report.server"
+                  type="wsting"/>
+
+      <!-- Add-on Test-run -->
+      <preference id="extensions.mozmill-crowd.trust_unsecure_addons"
+                  name="extensions.mozmill-crowd.trust_unsecure_addons"
+                  type="bool"/>
+
+    </preferences>
+
+    <groupbox id="mozmillTestsGroup">
+      <caption label="&mozmillTestsRepository.label;"/>
+
+      <radiogroup id="testsLocation"
+                  onsyncfrompreference="return ;">
+        <radio id="mozmillTestsDefault" value="true"
+               label="&mozmillTestsDefault.label;"
+               accesskey="&mozmillTestsDefault.accesskey;"
+               preference="extensions.mozmill-crowd.repositores.mozmill-tests.custom"/>
+        <hbox>
+          <radio id="mozmillTestsCustom" value="false"
+                 label="&mozmillTestsCustom.label;"
+                 accesskey="&mozmillTestsCustom.accesskey;"/>
+          <textbox id="mozmillTestsUrl" flex="1"
+                   preference="extensions.mozmill-crowd.repositories.mozmill-tests"/>
+        </hbox>
+      </radiogroup>
+    </groupbox>
+
+    <groupbox id="reportGroup">
+      <caption label="&reportServer.label;"/>
+      <checkbox id="reportEnabled" label="&reportServerSubmit.label;"
+                accesskey="&reportServerSubmit.accesskey;"
+                preference="extensions.mozmill-crowd.report.send"/>
+      <textbox id="reportUrl" flex="1"
+               preference="extensions.mozmill-crowd.report.server"/>
+    </groupbox>
+
+    <groupbox id="addonsGroup">
+      <caption label="&addonsTestrun.label;"/>
+      <checkbox id="trustUnsecure"
+                label="&addonsTestrunUntrusted.label;"
+                accesskey="&addonsTestrunUntrusted.accesskey;"
+                preference="extensions.mozmill-crowd.trust_unsecure_addons"
+                onsynctopreference=""/>
+    </groupbox>
+
+  </prefpane>
+
+</prefwindow>

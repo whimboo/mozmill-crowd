@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+
+<!DOCTYPE window SYSTEM "chrome://mozmill-crowd/locale/mozmill-crowd.dtd">
+
+<?xml-stylesheet href="chrome://mozmill-crowd/skin/mozmill-crowd.css" type="text/css"?>
+
+<dialog xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+        id="mozmillcrowd-window"
+        title="&windowTitle.label;"
+        buttons="accept"
+        buttonlabelaccept="&closeDialogButton.label;"
+        buttonaccesskeyaccept="&closeDialogButton.accesskey;"
+        ondialogaccept="return gMozmillCrowd.closeDialog();"
+        persist="height screenX screenY width"
+        windowtype="MozMill:Crowd"
+        onload="gMozmillcrowd.init();">
+
+  <script src="mozmill-crowd.js"/>
+
+  <commandset id="mozmill-crowd-commandset">
+    <command id="mozmillCrowd:browseForApplication"
+             oncommand="gMozmillCrowd.browseForApplication(event);" />
+    <command id="mozmillCrowd:openPreferences"
+             oncommand="gMozmillCrowd.openPreferences(event);" />
+    <command id="mozmillCrowd:startTestrun"
+             oncommand="gMozmillCrowd.startTestrun(event);" />
+  </commandset>
+
+  <groupbox id="testrunSettings" orient="horizontal">
+    <vbox>
+      <label value="&selectApplication.label;"
+             accesskey="&selectApplication.accesskey;"
+             control="selectApplication"/>
+      <menulist id="selectApplication">
+        <menupopup id="selectApplicationPopup">
+          <menuseparator id="browseApplicationSeparator"/>
+          <menuitem id="browseApplication"
+                    label="&browseApplication.label;"
+                    command="mozmillCrowd:browseForApplication"
+                    selected="true"/>
+        </menupopup>
+      </menulist>
+    </vbox>
+
+    <vbox>
+      <label value="&selectTestrun.label;"
+             accesskey="&selectTestrun.accesskey;"
+             control="selectTestrun"/>
+      <menulist id="selectTestrun">
+        <menupopup id="selectTestrunPopup">
+        </menupopup>
+      </menulist>
+    </vbox>
+
+    <vbox valign="bottom">
+      <button id="startStopTestrun"
+              label="&startTestrun.label;"
+              command="mozmillCrowd:startTestrun"/>
+    </vbox>
+
+    <vbox flex="1" valign="bottom" align="right">
+      <button label="&preferences.label;"
+              accesskey="&preferences.accesskey;"
+              command="mozmillCrowd:openPreferences"/>
+    </vbox>
+  </groupbox>
+
+  <label value="&testrunResults.label;"
+         accesskey="&testrunResults.accesskey;"
+         control="testrunResults"/>
+  <textbox id="testrunResults" multiline="true" flex="1" readonly="true" />
+
+</dialog>

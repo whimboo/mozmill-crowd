@@ -1,0 +1,16 @@
+<!ENTITY prefwindow.title                    "Mozmill Crowd preferences">
+<!ENTITY paneGeneral.title                   "Mozmill Crowd preferences">
+
+<!ENTITY mozmillTestsRepository.label        "Mozmill-Tests Repository:">
+<!ENTITY mozmillTestsDefault.label           "Default (hg.mozilla.org)">
+<!ENTITY mozmillTestsDefault.accesskey       "D">
+<!ENTITY mozmillTestsCustom.label            "Custom:">
+<!ENTITY mozmillTestsCustom.accesskey        "C">
+
+<!ENTITY reportServer.label                  "Report Server:">
+<!ENTITY reportServerSubmit.label            "Submit test results to a couchdb server:">
+<!ENTITY reportServerSubmit.accesskey        "S">
+
+<!ENTITY addonsTestrun.label                 "Add-ons tests:">
+<!ENTITY addonsTestrunUntrusted.label        "Trust unsecure add-ons not hosted on addons.mozilla.org">
+<!ENTITY addonsTestrunUntrusted.accesskey    "T">

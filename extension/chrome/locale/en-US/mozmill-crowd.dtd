@@ -1,0 +1,20 @@
+<!-- main menu entry for browser window -->
+<!ENTITY menuOpenDialog.label                            "MozMill Crowd">
+
+<!-- Mozmill crowd dialog -->
+<!ENTITY windowTitle.label                               "MozMill Crowd Testing">
+<!ENTITY closeDialogButton.label                         "Close">
+<!ENTITY closeDialogButton.accesskey                     "C">
+
+<!ENTITY selectApplication.label                         "Application to test:">
+<!ENTITY selectApplication.accesskey                     "S">
+<!ENTITY browseApplication.label                         "Browse...">
+<!ENTITY selectTestrun.label                             "Test-run to execute:">
+<!ENTITY selectTestrun.accesskey                         "T">
+<!ENTITY startTestrun.label                              "Start Test-run">
+<!ENTITY stopTestrun.label                               "Stop Test-run">
+<!ENTITY preferences.label                               "Preferences">
+<!ENTITY preferences.accesskey                           "P">
+
+<!ENTITY testrunResults.label                            "Test-run log:">
+<!ENTITY testrunResults.accesskey                        "l">

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE overlay SYSTEM "chrome://mozmill-crowd/locale/mozmill-crowd.dtd">
+
+<overlay id="mcBrowserOverlay"
+         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+
+  <script>
+    function openMozmillCrowd(event) {
+      window.openDialog("chrome://mozmill-crowd/content/mozmill-crowd.xul", "",
+                        "chrome, dialog");
+    }
+  </script>
+
+  <!-- XXX: Only temporary -->
+  <keyset>
+    <key id="mozmill-crowd_keyOpenDialog" modifiers="accel shift" key="c"
+         oncommand="openMozmillCrowd(event);"/>
+  </keyset>
+
+  <menupopup id="menu_ToolsPopup">
+    <menuitem id="mozmill-crowd-openDialog" label="&menuOpenDialog.label;"
+              oncommand="openMozmillCrowd(event);"/>
+  </menupopup>
+
+</overlay>
