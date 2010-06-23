@@ -15,7 +15,7 @@
         ondialogaccept="return gMozmillCrowd.closeDialog();"
         persist="height screenX screenY width"
         windowtype="MozMill:Crowd"
-        onload="gMozmillcrowd.init();">
+        onload="gMozmillCrowd.init();">
 
   <script src="mozmill-crowd.js"/>
 
