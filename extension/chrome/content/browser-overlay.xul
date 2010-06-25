@@ -34,8 +34,19 @@
 
   <script>
     function openMozmillCrowd(event) {
-      window.openDialog("chrome://mozmill-crowd/content/mozmill-crowd.xul", "",
-                        "chrome, dialog");
+      var wm = Cc["@mozilla.org/appshell/window-mediator;1"].
+               getService(Ci.nsIWindowMediator);
+      var window = wm.getMostRecentWindow("MozMill:Crowd");
+
+      // Only allow one instance of the dialog
+      if (!window) {
+        var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
+                 getService(Ci.nsIWindowWatcher);
+        ww.openWindow(null, "chrome://mozmill-crowd/content/mozmill-crowd.xul",
+                      "_blank", "chrome, dialog", null);
+      } else {
+        window.focus();
+      }
     }
   </script>
 
