@@ -130,5 +130,10 @@ var gMozmillCrowd = {
   },
 
   startTestrun : function gMozmillCrowd_startTestrun(event) {
+    if (!mcuPrepareTestrunEnvironment())
+      return;
+
+    mcuExecuteTestrun(this._applications.selectedItem.value,
+                      this._testruns.selectedItem.value);
   }
 };

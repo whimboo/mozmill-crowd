@@ -34,6 +34,21 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
+// Chrome URL of the extension
+const CHROME_URL = "chrome://mozmill-crowd/content/";
+
+const ENVIRONMENT_PATH = "mozmill-crowd";
+const ENVIRONMENT_INTERPRETER = "/bin/bash"
+const ENVIRONMENT_WRAPPER = "env_start.sh";
+
+// Executable files for Firefox
+const EXECUTABLES = {
+    "Darwin" : "firefox-bin",
+    "Linux" : "firefox-bin",
+    "WINNT" : "firefox.exe"
+};
+
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -52,17 +67,6 @@ const DIR_APPLICATION = "CurProcD";
 const DIR_PROFILE = "ProfD";
 const DIR_TMP = "TmpD";
 
-const CHROME_URL = "chrome://mozmill-crowd/content/";
-const DIR_TEST_ENVIRONMENT = "mozmill-crowd";
-
-// Executable files for Firefox
-const EXECUTABLES = {
-    "Darwin" : "firefox-bin",
-    "Linux" : "firefox-bin",
-    "WINNT" : "firefox.exe"
-};
-
-
 // Application specific information
 var gAppInfo = CLASS_APP_INFO.getService(Ci.nsIXULAppInfo);
 var gXulRuntime = gAppInfo.QueryInterface(Ci.nsIXULRuntime);
@@ -71,6 +75,39 @@ var gXulRuntime = gAppInfo.QueryInterface(Ci.nsIXULRuntime);
 var gPrefService = CLASS_PREF_SERVICE.getService(Ci.nsIPrefService);
 var gPrefBranch = gPrefService.QueryInterface(Ci.nsIPrefBranch);
 var gWindowWatcher = CLASS_WINDOW_WATCHER.getService(Ci.nsIWindowWatcher);
+
+
+/**
+ * Executes the specified test-run with the given application
+ */
+function mcuExecuteTestrun(aAppPath, aScriptName) {
+  // Get a handle of the bash interpreter
+  var cmd = CLASS_LOCAL_FILE.createInstance(Ci.nsILocalFile);
+  cmd.initWithPath(ENVIRONMENT_INTERPRETER);
+
+  var env = mcuGetTestEnvironmentPath();
+
+  // Wrapper script to start virtual environment and execute the test-run
+  var wrapper_script = env.clone();
+  wrapper_script.append(ENVIRONMENT_WRAPPER);
+
+  // Selected test-run script from the mozmill-automation repository
+  var testrun_script = env.clone();
+  testrun_script.append("mozmill-automation");
+  testrun_script.append(aScriptName);
+
+  var args = [
+    wrapper_script.path,
+    env.path,
+    testrun_script.path,
+    mcuGetAppBundle(aAppPath)
+  ];
+
+
+  var process = CLASS_PROCESS.createInstance(Ci.nsIProcess);
+  process.init(cmd);
+  process.run(false, args, args.length);
+}
 
 /**
  * Get the application bundle path on OS X
@@ -145,10 +182,24 @@ function mcuGetCurAppPath() {
  *
  * @returns The environment path as nsILocalFile instance
  */
-function mcuGetTestEnvironment() {
+function mcuGetTestEnvironmentPath() {
   var dir = CLASS_DIRECTORY_SERVICE.
             getService(Ci.nsIProperties).get(DIR_PROFILE, Ci.nsIFile);
-  dir.append(DIR_TEST_ENVIRONMENT);
+  dir.append(ENVIRONMENT_PATH);
 
   return dir;
+}
+
+/**
+ *
+ */
+function mcuPrepareTestrunEnvironment() {
+  // Check if the test-run environment exists
+  var envTestrun = mcuGetTestEnvironmentPath();
+  if (!envTestrun.exists()) {
+    alert("Test environment doesn't exist yet.")
+    return false;
+  }
+
+  return true;
 }
