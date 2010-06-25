@@ -92,11 +92,8 @@ var gMozmillCrowd = {
    * Browse for an application to use for the test-run.
    */
   browseForApplication : function gMozmillCrowd_browseForApplication(event) {
-    var recentApplications = [ ];
-
     // Let the user select an application
-    var fp = Cc["@mozilla.org/filepicker;1"].
-             createInstance(Ci.nsIFilePicker);
+    var fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
 
     fp.init(window, "Select a File", Ci.nsIFilePicker.modeOpen);
     if (fp.show() == Ci.nsIFilePicker.returnOK) {
@@ -125,7 +122,8 @@ var gMozmillCrowd = {
   },
 
   openPreferences : function gMozmillCrowd_openPreferences(event) {
-    window.openDialog("chrome://mozmill-crowd/content/preferences.xul", "", "chrome,dialog");
+    var ww = CLASS_WINDOW_WATCHER.getService(Ci.nsIWindowWatcher);
+    ww.openDialog(CHROME_URI + "/preferences.xul", "", "chrome,dialog");
   },
 
   startTestrun : function gMozmillCrowd_startTestrun(event) {

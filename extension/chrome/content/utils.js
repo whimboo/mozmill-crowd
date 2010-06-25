@@ -43,6 +43,7 @@ const CLASS_DIRECTORY_SERVICE = Cc["@mozilla.org/file/directory_service;1"];
 const CLASS_LOCAL_FILE = Cc["@mozilla.org/file/local;1"];
 const CLASS_PREF_SERVICE = Cc["@mozilla.org/preferences-service;1"];
 const CLASS_PROCESS = Cc["@mozilla.org/process/util;1"];
+const CLASS_WINDOW_WATCHER = Cc["@mozilla.org/embedcomp/window-watcher;1"];
 
 const FACTORY_INI_PARSER = Cc["@mozilla.org/xpcom/ini-processor-factory;1"];
 
@@ -50,6 +51,9 @@ const FACTORY_INI_PARSER = Cc["@mozilla.org/xpcom/ini-processor-factory;1"];
 const DIR_APPLICATION = "CurProcD";
 const DIR_PROFILE = "ProfD";
 const DIR_TMP = "TmpD";
+
+const CHROME_URI = "chrome://mozmill-crowd/content/";
+const DIR_TEST_ENVIRONMENT = "mozmill-crowd";
 
 // Executable files for Firefox
 const EXECUTABLES = {
@@ -135,3 +139,15 @@ function mcuGetCurAppPath() {
   return dir.path;
 }
 
+/**
+ * Retrieve the location of test-run environment from within the users profile
+ *
+ * @returns The environment path as nsILocalFile instance
+ */
+function mcuGetTestEnvironment() {
+  var dir = CLASS_DIRECTORY_SERVICE.
+            getService(Ci.nsIProperties).get(DIR_PROFILE, Ci.nsIFile);
+  dir.append(DIR_TEST_ENVIRONMENT);
+
+  return dir;
+}
