@@ -42,6 +42,7 @@ const CLASS_APP_INFO = Cc["@mozilla.org/xre/app-info;1"];
 const CLASS_DIRECTORY_SERVICE = Cc["@mozilla.org/file/directory_service;1"];
 const CLASS_LOCAL_FILE = Cc["@mozilla.org/file/local;1"];
 const CLASS_PREF_SERVICE = Cc["@mozilla.org/preferences-service;1"];
+const CLASS_PROCESS = Cc["@mozilla.org/process/util;1"];
 
 const FACTORY_INI_PARSER = Cc["@mozilla.org/xpcom/ini-processor-factory;1"];
 

@@ -34,32 +34,58 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-
-const PREF_SERVICE = Cc["@mozilla.org/preferences-service;1"].
-                     getService(Ci.nsIPrefService);
-const PREF_BRANCH =  PREF_SERVICE.QueryInterface(Ci.nsIPrefBranch);
-
-const TEST_RUNS = [
+const AVAILABLE_TEST_RUNS = [
   {name : "BFT Test-run", script: "testrun_bft.py"},
   {name : "Add-ons Test-run", script: "testrun_addons.py"},
 ];
 
 var gMozmillCrowd = {
-
   init : function gMozmillCrowd_init() {
-    var menulist = document.getElementById("selectTestrun");
-    var popup = document.getElementById("selectTestrunPopup");
+    // Cache often used elements
+    this._applications = document.getElementById("selectApplication");
+    this._testruns = document.getElementById("selectTestrun");
+    this._stringBundle = document.getElementById("mozmill-crowd-stringbundle");
 
-    for each (var testrun in TEST_RUNS) {
+    // Add the current application as default
+    try {
+      var path = mcuGetCurAppPath();
+      var details = mcuGetAppDetails(path);
+      this.addApplicationToList(path, details);
+    } catch (ex) {
+      // We never should fail here.
+    }
+
+    // Populate the test-run drop down with allowed test-runs
+    var popup = document.getElementById("selectTestrunPopup");
+    for each (var testrun in AVAILABLE_TEST_RUNS) {
       var menuitem = document.createElement("menuitem");
       menuitem.setAttribute("value", testrun.script);
       menuitem.setAttribute("label", testrun.name);
       menuitem.setAttribute("crop", "center");
-  
+
       popup.appendChild(menuitem);
     }
+    this._testruns.selectedIndex = 0;
+  },
+
+  /**
+   * Adds the specified application to the application drop down
+   *
+   * @param string aPath
+   *        Path to the application folder
+   */
+  addApplicationToList : function gMozmillCrowd_addApplicationToList(aPath, aDetails) {
+    var tooltip = aDetails.App.Name + " " + aDetails.App.Version;
+
+    var menuitem = document.createElement("menuitem");
+    menuitem.setAttribute("value", aPath);
+    menuitem.setAttribute("label", mcuGetAppBundle(aPath));
+    menuitem.setAttribute("tooltiptext", tooltip);
+    menuitem.setAttribute("crop", "start");
+
+    var popup = document.getElementById("selectApplicationPopup");
+    popup.insertBefore(menuitem, popup.childNodes[0]);
+    this._applications.selectedItem = menuitem;
   },
 
   /**
@@ -74,17 +100,20 @@ var gMozmillCrowd = {
 
     fp.init(window, "Select a File", Ci.nsIFilePicker.modeOpen);
     if (fp.show() == Ci.nsIFilePicker.returnOK) {
-      var menulist = document.getElementById("selectApplication");
-      var popup = document.getElementById("selectApplicationPopup");
-      var separator = document.getElementById("browseApplicationSeparator");
+      try {
+        var file = fp.file;
 
-      var menuitem = document.createElement("menuitem");
-      menuitem.setAttribute("value", fp.file);
-      menuitem.setAttribute("label", fp.file.path);
-      menuitem.setAttribute("crop", "center");
+        // For OS X use the real application folder
+        if (gXulRuntime.OS == "Darwin") {
+          file.appendRelativePath("Contents/MacOS/" + EXECUTABLES[gXulRuntime.OS]);
+        }
 
-      popup.insertBefore(menuitem, separator);
-      menulist.selectedItem = menuitem;
+        var details = mcuGetAppDetails(file.path);
+        this.addApplicationToList(file.path, details);
+      } catch (ex) {
+        alert(this._stringBundle.getFormattedString("exception.invalid_application",
+                                              [mcuGetAppBundle(file.path)]));
+      }
     }
   },
 
@@ -100,6 +129,5 @@ var gMozmillCrowd = {
   },
 
   startTestrun : function gMozmillCrowd_startTestrun(event) {
-
   }
 };

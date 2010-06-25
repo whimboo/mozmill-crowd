@@ -43,7 +43,13 @@
         windowtype="MozMill:Crowd"
         onload="gMozmillCrowd.init();">
 
+  <script type="application/x-javascript" src="chrome://mozmill-crowd/content/utils.js"/>
   <script type="application/x-javascript" src="chrome://mozmill-crowd/content/mozmill-crowd.js"/>
+
+  <stringbundleset id="mozmill-crowd-stringbundleset">
+    <stringbundle id="mozmill-crowd-stringbundle"
+                  src="chrome://mozmill-crowd/locale/mozmill-crowd.properties"/>
+  </stringbundleset>
 
   <commandset id="mozmill-crowd-commandset">
     <command id="mozmillCrowd:browseForApplication"
