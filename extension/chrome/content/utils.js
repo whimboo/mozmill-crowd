@@ -52,7 +52,7 @@ const DIR_APPLICATION = "CurProcD";
 const DIR_PROFILE = "ProfD";
 const DIR_TMP = "TmpD";
 
-const CHROME_URI = "chrome://mozmill-crowd/content/";
+const CHROME_URL = "chrome://mozmill-crowd/content/";
 const DIR_TEST_ENVIRONMENT = "mozmill-crowd";
 
 // Executable files for Firefox
@@ -70,6 +70,7 @@ var gXulRuntime = gAppInfo.QueryInterface(Ci.nsIXULRuntime);
 // Cached instances for accessing preferences
 var gPrefService = CLASS_PREF_SERVICE.getService(Ci.nsIPrefService);
 var gPrefBranch = gPrefService.QueryInterface(Ci.nsIPrefBranch);
+var gWindowWatcher = CLASS_WINDOW_WATCHER.getService(Ci.nsIWindowWatcher);
 
 /**
  * Get the application bundle path on OS X

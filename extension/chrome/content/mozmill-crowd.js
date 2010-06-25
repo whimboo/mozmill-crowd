@@ -121,9 +121,12 @@ var gMozmillCrowd = {
     return true;
   },
 
+  /**
+   * Opens the preferences dialog
+   */
   openPreferences : function gMozmillCrowd_openPreferences(event) {
-    var ww = CLASS_WINDOW_WATCHER.getService(Ci.nsIWindowWatcher);
-    ww.openDialog(CHROME_URI + "/preferences.xul", "", "chrome,dialog");
+    gWindowWatcher.openWindow(null, CHROME_URL + "preferences.xul", "",
+                              "chrome,dialog,modal", null);
   },
 
   startTestrun : function gMozmillCrowd_startTestrun(event) {
