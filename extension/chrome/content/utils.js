@@ -52,13 +52,19 @@ const EXECUTABLES = {
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
+const Cu = Components.utils;
 
 const CLASS_APP_INFO = Cc["@mozilla.org/xre/app-info;1"];
 const CLASS_DIRECTORY_SERVICE = Cc["@mozilla.org/file/directory_service;1"];
 const CLASS_LOCAL_FILE = Cc["@mozilla.org/file/local;1"];
 const CLASS_PREF_SERVICE = Cc["@mozilla.org/preferences-service;1"];
 const CLASS_PROCESS = Cc["@mozilla.org/process/util;1"];
+const CLASS_SCRIPTABLE_INPUT_STREAM = Cc["@mozilla.org/scriptableinputstream;1"];
 const CLASS_WINDOW_WATCHER = Cc["@mozilla.org/embedcomp/window-watcher;1"];
+
+const CLASS_IPC_SERVICE = Cc["@mozilla.org/process/ipc-service;1"];
+const CLASS_IPC_TRANSPORT = Cc["@mozilla.org/process/pipe-transport;1"];
+const CLASS_PROCESS_INFO = Cc["@mozilla.org/xpcom/process-info;1"];
 
 const FACTORY_INI_PARSER = Cc["@mozilla.org/xpcom/ini-processor-factory;1"];
 
@@ -76,11 +82,14 @@ var gPrefService = CLASS_PREF_SERVICE.getService(Ci.nsIPrefService);
 var gPrefBranch = gPrefService.QueryInterface(Ci.nsIPrefBranch);
 var gWindowWatcher = CLASS_WINDOW_WATCHER.getService(Ci.nsIWindowWatcher);
 
+var ipcService = CLASS_IPC_SERVICE.getService(Ci.nsIIPCService);
+var processInfo = CLASS_PROCESS_INFO.getService(Ci.nsIProcessInfo);
+
 
 /**
  * Executes the specified test-run with the given application
  */
-function mcuExecuteTestrun(aAppPath, aScriptName) {
+function mcuExecuteTestrun(aAppPath, aScriptName, aListener) {
   // Get a handle of the bash interpreter
   var cmd = CLASS_LOCAL_FILE.createInstance(Ci.nsILocalFile);
   cmd.initWithPath(ENVIRONMENT_INTERPRETER);
@@ -103,10 +112,17 @@ function mcuExecuteTestrun(aAppPath, aScriptName) {
     mcuGetAppBundle(aAppPath)
   ];
 
+  var pipeTrans = CLASS_IPC_TRANSPORT.createInstance(Ci.nsIPipeTransport);
+  pipeTrans.init(cmd, args, args.length, [], 0, 0, "", true, true, null);
+  pipeTrans.loggingEnabled = true;
+  
+  pipeTrans.asyncRead(aListener, null, 0, -1, 0);
 
-  var process = CLASS_PROCESS.createInstance(Ci.nsIProcess);
-  process.init(cmd);
-  process.run(false, args, args.length);
+  return pipeTrans;
+
+  //var process = CLASS_PROCESS.createInstance(Ci.nsIProcess);
+  //process.init(cmd);
+  //process.run(false, args, args.length);
 }
 
 /**

@@ -40,10 +40,16 @@ const AVAILABLE_TEST_RUNS = [
 ];
 
 var gMozmillCrowd = {
+  /**
+   * Initialize the Mozmill Crowd extension
+   */
   init : function gMozmillCrowd_init() {
+    this.process = null;
+
     // Cache often used elements
     this._applications = document.getElementById("selectApplication");
     this._testruns = document.getElementById("selectTestrun");
+    this._output = document.getElementById("testrunResults");
     this._stringBundle = document.getElementById("mozmill-crowd-stringbundle");
 
     // Add the current application as default
@@ -130,10 +136,50 @@ var gMozmillCrowd = {
   },
 
   startTestrun : function gMozmillCrowd_startTestrun(event) {
+    if (this.process != null) {
+      this.process.terminate();
+      this.process = null;
+      return;
+    }
+    
     if (!mcuPrepareTestrunEnvironment())
       return;
 
-    mcuExecuteTestrun(this._applications.selectedItem.value,
-                      this._testruns.selectedItem.value);
+    var myListener = new StreamListener();
+    this.process = mcuExecuteTestrun(this._applications.selectedItem.value,
+                                     this._testruns.selectedItem.value,
+                                     myListener);
   }
 };
+
+/**
+ * 
+ */
+function StreamListener() {
+}
+
+StreamListener.prototype = {
+  QueryInterface: function(aIID) {
+    if (aIID.equals(Ci.nsISupports) ||
+        aIID.equals(Ci.nsIStreamListener))
+      return this;
+    throw Ci.NS_NOINTERFACE;
+  },
+
+  onStartRequest: function(aRequest, aContext) {
+  },
+
+  onStopRequest: function(aRequest, aContext, aStatusCode) {
+  },
+
+  onDataAvailable: function(aRequest, aContext, aInputStream, offset, count) {
+    var stream = CLASS_SCRIPTABLE_INPUT_STREAM.
+                 createInstance(Ci.nsIScriptableInputStream);
+    stream.init(aInputStream);
+    var avail = aInputStream.available();
+    var data = stream.read(avail);
+
+    gMozmillCrowd._output.value += data;
+  }
+}
+
