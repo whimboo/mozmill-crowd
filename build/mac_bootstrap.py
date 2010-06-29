@@ -8,6 +8,8 @@ def after_install(options, home_dir):
     if not os.path.exists(etc):
         os.makedirs(etc)
     subprocess.call([join(home_dir, 'bin', 'easy_install'),
+                     'mercurial'])
+    subprocess.call([join(home_dir, 'bin', 'easy_install'),
                      'mozmill'])
     subprocess.call([join(home_dir, 'bin', 'easy_install'),
                      'httplib2'])
