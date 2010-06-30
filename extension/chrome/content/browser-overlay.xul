@@ -43,7 +43,7 @@
         var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
                  getService(Ci.nsIWindowWatcher);
         ww.openWindow(null, "chrome://mozmill-crowd/content/mozmill-crowd.xul",
-                      "", "chrome, dialog", null);
+                      "", "chrome,dialog,resizable", null);
       } else {
         window.focus();
       }
