@@ -48,6 +48,11 @@ const EXECUTABLES = {
     "WINNT" : "firefox.exe"
 };
 
+const AVAILABLE_TEST_RUNS = [
+  {name : "BFT Test-run", script: "testrun_bft.py"},
+  {name : "Add-ons Test-run", script: "testrun_addons.py"},
+];
+
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -108,9 +113,24 @@ function mcuExecuteTestrun(aAppPath, aScriptName, aListener) {
   var args = [
     wrapper_script.path,
     env.path,
-    testrun_script.path,
-    mcuGetAppBundle(aAppPath)
+    testrun_script.path
   ];
+
+  /// XXX: Bit hacky at the moment
+  if (aScriptName == "testrun_addons.py") {
+    var trust_unsecure = getPref("extensions.mozmill-crowd.trust_unsecure_addons", false);
+    if (trust_unsecure)
+      args = args.concat("--with-untrusted");
+  }
+
+  // Send results to brasstack
+  var send_report = getPref("extensions.mozmill-crowd.report.send", false);
+  var report_url = getPref("extensions.mozmill-crowd.report.server", "");
+  if (send_report && report_url != "")
+    args = args.concat("--report=" + report_url);
+
+  // Add binary
+  args = args.concat(mcuGetAppBundle(aAppPath));
 
   var pipeTrans = CLASS_IPC_TRANSPORT.createInstance(Ci.nsIPipeTransport);
   pipeTrans.init(cmd, args, args.length, [], 0, 0, "", true, true, null);
@@ -214,6 +234,83 @@ function mcuPrepareTestrunEnvironment() {
   var envTestrun = mcuGetTestEnvironmentPath();
   if (!envTestrun.exists()) {
     alert("Test environment doesn't exist yet.")
+    return false;
+  }
+
+  return true;
+}
+
+
+/**
+ * Retrieve the value of an individual preference.
+ *
+ * @param {string} prefName
+ *        The preference to get the value of.
+ * @param {boolean/number/string} defaultValue
+ *        The default value if preference cannot be found.
+ * @param {boolean/number/string} defaultBranch
+ *        If true the value will be read from the default branch (optional)
+ * @param {string} interfaceType
+ *        Interface to use for the complex value (optional)
+ *        (nsILocalFile, nsISupportsString, nsIPrefLocalizedString)
+ *
+ * @return The value of the requested preference
+ * @type boolean/int/string/complex
+ */
+function getPref(prefName, defaultValue, defaultBranch, interfaceType) {
+  try {
+    branch = defaultBranch ? gPrefService.getDefaultBranch("") : gPrefBranch;
+
+    // If interfaceType has been set, handle it differently
+    if (interfaceType != undefined) {
+      return branch.getComplexValue(prefName, interfaceType);
+    }
+
+    switch (typeof defaultValue) {
+      case ('boolean'):
+        return branch.getBoolPref(prefName);
+      case ('string'):
+        return branch.getCharPref(prefName);
+      case ('number'):
+        return branch.getIntPref(prefName);
+      default:
+        return undefined;
+    }
+  } catch(e) {
+    return defaultValue;
+  }
+}
+
+/**
+ * Set the value of an individual preference.
+ *
+ * @param {string} prefName
+ *        The preference to set the value of.
+ * @param {boolean/number/string/complex} value
+ *        The value to set the preference to.
+ * @param {string} interfaceType
+ *        Interface to use for the complex value
+ *        (nsILocalFile, nsISupportsString, nsIPrefLocalizedString)
+ *
+ * @return Returns if the value was successfully set.
+ * @type boolean
+ */
+function setPref(prefName, value, interfaceType) {
+  try {
+    switch (typeof value) {
+      case ('boolean'):
+        gPrefBranch.setBoolPref(prefName, value);
+        break;
+      case ('string'):
+        gPrefBranch.setCharPref(prefName, value);
+        break;
+      case ('number'):
+        gPrefBranch.setIntPref(prefName, value);
+        break;
+      default:
+        gPrefBranch.setComplexValue(prefName, interfaceType, value);
+    }
+  } catch(e) {
     return false;
   }
 

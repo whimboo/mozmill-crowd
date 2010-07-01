@@ -34,11 +34,6 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-const AVAILABLE_TEST_RUNS = [
-  {name : "BFT Test-run", script: "testrun_bft.py"},
-  {name : "Add-ons Test-run", script: "testrun_addons.py"},
-];
-
 var gMozmillCrowd = {
   /**
    * Initialize the Mozmill Crowd extension
@@ -179,6 +174,7 @@ StreamListener.prototype = {
     var avail = aInputStream.available();
     var data = stream.read(avail);
 
+    //Cu.reportError(data);
     gMozmillCrowd._output.value += data;
   }
 }
