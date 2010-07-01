@@ -42,10 +42,10 @@
       <!-- Mozmill tests repository -->
       <preference id="extensions.mozmill-crowd.repositories.mozmill-tests"
                   name="extensions.mozmill-crowd.repositories.mozmill-tests"
-                  type="wstring"/>
+                  type="string"/>
       <preference id="extensions.mozmill-crowd.repositores.mozmill-tests.custom"
                   name="extensions.mozmill-crowd.repositores.mozmill-tests.custom"
-                  type="wstring"/>
+                  type="string"/>
 
       <!-- Results Reporting -->
       <preference id="extensions.mozmill-crowd.report.send"
@@ -53,7 +53,7 @@
                   type="bool"/>
       <preference id="extensions.mozmill-crowd.report.server"
                   name="extensions.mozmill-crowd.report.server"
-                  type="wsting"/>
+                  type="string"/>
 
       <!-- Add-on Test-run -->
       <preference id="extensions.mozmill-crowd.trust_unsecure_addons"
@@ -74,8 +74,10 @@
         <hbox>
           <radio id="mozmillTestsCustom" value="false"
                  label="&mozmillTestsCustom.label;"
-                 accesskey="&mozmillTestsCustom.accesskey;"/>
+                 accesskey="&mozmillTestsCustom.accesskey;"
+                 disabled="true"/>
           <textbox id="mozmillTestsUrl" flex="1"
+                   disabled="true"
                    preference="extensions.mozmill-crowd.repositories.mozmill-tests"/>
         </hbox>
       </radiogroup>
