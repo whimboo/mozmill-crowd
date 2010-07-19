@@ -39,7 +39,7 @@ const CHROME_URL = "chrome://mozmill-crowd/content/";
 
 const ENVIRONMENT_PATH = "mozmill-crowd";
 const ENVIRONMENT_INTERPRETER = "/bin/bash"
-const ENVIRONMENT_WRAPPER = "env_start.sh";
+const ENVIRONMENT_WRAPPER = "start.sh";
 
 // Executable files for Firefox
 const EXECUTABLES = {
@@ -65,6 +65,7 @@ const CLASS_LOCAL_FILE = Cc["@mozilla.org/file/local;1"];
 const CLASS_PREF_SERVICE = Cc["@mozilla.org/preferences-service;1"];
 const CLASS_PROCESS = Cc["@mozilla.org/process/util;1"];
 const CLASS_SCRIPTABLE_INPUT_STREAM = Cc["@mozilla.org/scriptableinputstream;1"];
+const CLASS_THREAD_MANAGER = Cc["@mozilla.org/thread-manager;1"];
 const CLASS_WINDOW_WATCHER = Cc["@mozilla.org/embedcomp/window-watcher;1"];
 
 const CLASS_IPC_SERVICE = Cc["@mozilla.org/process/ipc-service;1"];
@@ -316,3 +317,41 @@ function setPref(prefName, value, interfaceType) {
 
   return true;
 }
+
+var outputProcessThread = function(threadID, result) {
+  this.threadID = threadID;
+  this.result = result;
+};
+
+outputProcessThread.prototype = {
+  run: function() {
+    try {
+      Components.reportError(this.result.type);
+      debugger;
+      switch (this.result.type) {
+        case "string":
+          var listbox = gMozmillCrowd._output;
+          listbox.appendItem(this.result.content, null);
+          listbox.ensureIndexIsVisible(listbox.itemCount - 1);
+          break;
+        case "end":
+          gMozmillCrowd._applications.disabled = false;
+          gMozmillCrowd._testruns.disabled = false;
+          gMozmillCrowd._execButton.label = this._stringBundle.getString("startTestrun.label");
+
+          break;
+        default:
+      }
+    } catch(err) {
+      Components.utils.reportError(err);
+    }
+  },
+  
+  QueryInterface: function(iid) {
+    if (iid.equals(Components.interfaces.nsIRunnable) ||
+        iid.equals(Components.interfaces.nsISupports)) {
+            return this;
+    }
+    throw Components.results.NS_ERROR_NO_INTERFACE;
+  }
+};

@@ -46,10 +46,9 @@
   <script type="application/x-javascript" src="chrome://mozmill-crowd/content/utils.js"/>
   <script type="application/x-javascript" src="chrome://mozmill-crowd/content/mozmill-crowd.js"/>
 
-  <stringbundleset id="mozmill-crowd-stringbundleset">
-    <stringbundle id="mozmill-crowd-stringbundle"
-                  src="chrome://mozmill-crowd/locale/mozmill-crowd.properties"/>
-  </stringbundleset>
+  <broadcasterset id="mozmill-crowd-broadcasterset">
+    <broadcaster id="mozmill-crowd-text-execution" />
+  </broadcasterset>
 
   <commandset id="mozmill-crowd-commandset">
     <command id="mozmillCrowd:browseForApplication"
@@ -60,12 +59,18 @@
              oncommand="gMozmillCrowd.startTestrun(event);" />
   </commandset>
 
+  <stringbundleset id="mozmill-crowd-stringbundleset">
+    <stringbundle id="mozmill-crowd-stringbundle"
+                  src="chrome://mozmill-crowd/locale/mozmill-crowd.properties"/>
+  </stringbundleset>
+
   <groupbox id="testrunSettings" orient="horizontal">
     <vbox>
       <label value="&selectApplication.label;"
              accesskey="&selectApplication.accesskey;"
              control="selectApplication"/>
-      <menulist id="selectApplication">
+      <menulist id="selectApplication"
+                observes="mozmill-crowd-text-execution">
         <menupopup id="selectApplicationPopup">
           <menuseparator id="browseApplicationSeparator"/>
           <menuitem id="browseApplication"
@@ -80,7 +85,8 @@
       <label value="&selectTestrun.label;"
              accesskey="&selectTestrun.accesskey;"
              control="selectTestrun"/>
-      <menulist id="selectTestrun">
+      <menulist id="selectTestrun"
+                observes="mozmill-crowd-text-execution">
         <menupopup id="selectTestrunPopup">
         </menupopup>
       </menulist>
@@ -102,6 +108,6 @@
   <label value="&testrunResults.label;"
          accesskey="&testrunResults.accesskey;"
          control="testrunResults"/>
-  <textbox id="testrunResults" multiline="true" flex="1" readonly="true"/>
+  <listbox id="testrunResults" flex="1" readonly="true"/>
 
 </dialog>

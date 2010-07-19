@@ -41,10 +41,11 @@ var gMozmillCrowd = {
   init : function gMozmillCrowd_init() {
     this.process = null;
 
-    // Cache often used elements
+    // Cache main ui elements
     this._applications = document.getElementById("selectApplication");
     this._testruns = document.getElementById("selectTestrun");
     this._output = document.getElementById("testrunResults");
+    this._execButton = document.getElementById("startStopTestrun");
     this._stringBundle = document.getElementById("mozmill-crowd-stringbundle");
 
     // Add the current application as default
@@ -109,8 +110,8 @@ var gMozmillCrowd = {
         var details = mcuGetAppDetails(file.path);
         this.addApplicationToList(file.path, details);
       } catch (ex) {
-        alert(this._stringBundle.getFormattedString("exception.invalid_application",
-                                              [mcuGetAppBundle(file.path)]));
+        window.alert(this._stringBundle.getFormattedString("exception.invalid_application",
+                                        [mcuGetAppBundle(file.path)]));
       }
     }
   },
@@ -134,11 +135,23 @@ var gMozmillCrowd = {
     if (this.process != null) {
       this.process.terminate();
       this.process = null;
+
+      gMozmillCrowd._applications.disabled = false;
+      gMozmillCrowd._testruns.disabled = false;
+      gMozmillCrowd._execButton.label = this._stringBundle.getString("startTestrun.label");
+
       return;
     }
-    
+
+    for (var i = gMozmillCrowd._output.itemCount - 1; i > -1; i--)
+      gMozmillCrowd._output.removeItemAt(i);
+
     if (!mcuPrepareTestrunEnvironment())
       return;
+
+    gMozmillCrowd._applications.disabled = true;
+    gMozmillCrowd._testruns.disabled = true;
+    gMozmillCrowd._execButton.label = this._stringBundle.getString("stopTestrun.label");
 
     var myListener = new StreamListener();
     this.process = mcuExecuteTestrun(this._applications.selectedItem.value,
@@ -165,6 +178,11 @@ StreamListener.prototype = {
   },
 
   onStopRequest: function(aRequest, aContext, aStatusCode) {
+    var data = {type: "end", content: null};
+    // Call the main thread to indicate we have finished the process
+    var main = Cc["@mozilla.org/thread-manager;1"].getService().mainThread;
+    main.dispatch(new outputProcessThread(aContext, data),
+                  Ci.nsIThread.DISPATCH_NORMAL);
   },
 
   onDataAvailable: function(aRequest, aContext, aInputStream, offset, count) {
@@ -172,10 +190,15 @@ StreamListener.prototype = {
                  createInstance(Ci.nsIScriptableInputStream);
     stream.init(aInputStream);
     var avail = aInputStream.available();
-    var data = stream.read(avail);
 
-    //Cu.reportError(data);
-    gMozmillCrowd._output.value += data;
+    var content = stream.read(avail);
+    debugger;
+    var data = {type: "string", content: content};
+    
+    // Call the main thread to indicate we have finished the process
+    var main = Cc["@mozilla.org/thread-manager;1"].getService().mainThread;
+    main.dispatch(new outputProcessThread(aContext, data),
+                  Ci.nsIThread.DISPATCH_NORMAL);
   }
 }
 
