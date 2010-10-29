@@ -6,7 +6,7 @@
     <em:id>mozmill-crowd@qa.mozilla.org</em:id>
     <em:type>2</em:type>
     <em:name>MozMill Crowd</em:name>
-    <em:version>0.1</em:version>
+    <em:version>0.1pre</em:version>
     <em:creator>Henrik Skupin (http://www.hskupin.info) &lt;hskupin@mozilla.com&gt;</em:creator>
     <em:contributor></em:contributor>
     <em:description>MozMill tests executed from the crowd</em:description>
@@ -17,8 +17,8 @@
     <em:targetApplication>
       <Description>
         <em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
-        <em:minVersion>3.5</em:minVersion>
-        <em:maxVersion>3.7a6pre</em:maxVersion>
+        <em:minVersion>4.0b6</em:minVersion>
+        <em:maxVersion>4.0</em:maxVersion>
       </Description>
     </em:targetApplication>
 
