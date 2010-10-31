@@ -34,8 +34,8 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-// Chrome URL of the extension
-const CHROME_URL = "chrome://mozmill-crowd/content/";
+var subprocess = {};
+Components.utils.import('resource://mozmill-crowd/subprocess.jsm', subprocess);
 
 const ENVIRONMENT_PATH = "mozmill-crowd";
 const ENVIRONMENT_INTERPRETER = "/bin/bash"
@@ -53,6 +53,8 @@ const AVAILABLE_TEST_RUNS = [
   {name : "Add-ons Test-run", script: "testrun_addons.py"},
 ];
 
+// Chrome URL of the extension
+const CHROME_URL = "chrome://mozmill-crowd/content/";
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -67,10 +69,6 @@ const CLASS_PROCESS = Cc["@mozilla.org/process/util;1"];
 const CLASS_SCRIPTABLE_INPUT_STREAM = Cc["@mozilla.org/scriptableinputstream;1"];
 const CLASS_THREAD_MANAGER = Cc["@mozilla.org/thread-manager;1"];
 const CLASS_WINDOW_WATCHER = Cc["@mozilla.org/embedcomp/window-watcher;1"];
-
-const CLASS_IPC_SERVICE = Cc["@mozilla.org/process/ipc-service;1"];
-const CLASS_IPC_TRANSPORT = Cc["@mozilla.org/process/pipe-transport;1"];
-const CLASS_PROCESS_INFO = Cc["@mozilla.org/xpcom/process-info;1"];
 
 const FACTORY_INI_PARSER = Cc["@mozilla.org/xpcom/ini-processor-factory;1"];
 
@@ -87,9 +85,6 @@ var gXulRuntime = gAppInfo.QueryInterface(Ci.nsIXULRuntime);
 var gPrefService = CLASS_PREF_SERVICE.getService(Ci.nsIPrefService);
 var gPrefBranch = gPrefService.QueryInterface(Ci.nsIPrefBranch);
 var gWindowWatcher = CLASS_WINDOW_WATCHER.getService(Ci.nsIWindowWatcher);
-
-var ipcService = CLASS_IPC_SERVICE.getService(Ci.nsIIPCService);
-var processInfo = CLASS_PROCESS_INFO.getService(Ci.nsIProcessInfo);
 
 
 /**
@@ -133,13 +128,13 @@ function mcuExecuteTestrun(aAppPath, aScriptName, aListener) {
   // Add binary
   args = args.concat(mcuGetAppBundle(aAppPath));
 
-  var pipeTrans = CLASS_IPC_TRANSPORT.createInstance(Ci.nsIPipeTransport);
-  pipeTrans.init(cmd, args, args.length, [], 0, 0, "", true, true, null);
-  pipeTrans.loggingEnabled = true;
-  
-  pipeTrans.asyncRead(aListener, null, 0, -1, 0);
-
-  return pipeTrans;
+  //var pipeTrans = CLASS_IPC_TRANSPORT.createInstance(Ci.nsIPipeTransport);
+  //pipeTrans.init(cmd, args, args.length, [], 0, 0, "", true, true, null);
+  //pipeTrans.loggingEnabled = true;
+  //
+  //pipeTrans.asyncRead(aListener, null, 0, -1, 0);
+  //
+  //return pipeTrans;
 
   //var process = CLASS_PROCESS.createInstance(Ci.nsIProcess);
   //process.init(cmd);
