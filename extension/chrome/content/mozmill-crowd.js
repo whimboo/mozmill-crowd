@@ -141,10 +141,6 @@ var gMozmillCrowd = {
       return;
     }
 
-    while (gMozmillCrowd._output.getRowCount() != 0) {
-      gMozmillCrowd._output.removeItemAt(0);
-    }
-
     //gMozmillCrowd._applications.disabled = true;
     //gMozmillCrowd._testruns.disabled = true;
     //gMozmillCrowd._execButton.label = this._stringBundle.getString("stopTestrun.label");

@@ -226,19 +226,16 @@ Environment.prototype = {
       arguments: args,
       workdir: this.dir,
       stdout: subprocess.ReadablePipe(function(data) {
-        var listbox = gMozmillCrowd._output;
-        listbox.appendItem(data, null);
-        listbox.ensureIndexIsVisible(listbox.itemCount - 1);
+        var output = gMozmillCrowd._output;
+        output.value = output.value + data;
       }),
       stderr: subprocess.ReadablePipe(function(data) {
-        var listbox = gMozmillCrowd._output;
-        listbox.appendItem(data, null);
-        listbox.ensureIndexIsVisible(listbox.itemCount - 1);
+        var output = gMozmillCrowd._output;
+        output.value = output.value + data;
       }),
       onFinished: subprocess.Terminate(function() {
-        var listbox = gMozmillCrowd._output;
-        listbox.appendItem("** Exit code: " + this.exitCode, null);
-        listbox.ensureIndexIsVisible(listbox.itemCount - 1);
+        var output = gMozmillCrowd._output;
+        output.value = output.value + "** Exit code: " + this.exitCode;
 
         self._process = null;
       })
