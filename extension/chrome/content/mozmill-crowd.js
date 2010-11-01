@@ -34,12 +34,15 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
+var gWindowWatcher = Cc["@mozilla.org/embedcomp/window-watcher;1"].
+                     getService(Ci.nsIWindowWatcher);
+
 var gMozmillCrowd = {
   /**
    * Initialize the Mozmill Crowd extension
    */
   init : function gMozmillCrowd_init() {
-    this.process = null;
+    this._environment = new Environment();
 
     // Cache main ui elements
     this._applications = document.getElementById("selectApplication");
@@ -49,24 +52,20 @@ var gMozmillCrowd = {
     this._stringBundle = document.getElementById("mozmill-crowd-stringbundle");
 
     // Add the current application as default
-    try {
-      var path = mcuGetCurAppPath();
-      var details = mcuGetAppDetails(path);
-      this.addApplicationToList(path, details);
-    } catch (ex) {
-      // We never should fail here.
-    }
+    this.addApplicationToList(new Application());
 
     // Populate the test-run drop down with allowed test-runs
     var popup = document.getElementById("selectTestrunPopup");
-    for each (var testrun in AVAILABLE_TEST_RUNS) {
+
+    AVAILABLE_TEST_RUNS.forEach(function(testrun) {
       var menuitem = document.createElement("menuitem");
-      menuitem.setAttribute("value", testrun.script);
       menuitem.setAttribute("label", testrun.name);
       menuitem.setAttribute("crop", "center");
+      menuitem.value = testrun.script;
 
       popup.appendChild(menuitem);
-    }
+    });
+
     this._testruns.selectedIndex = 0;
   },
 
@@ -76,14 +75,15 @@ var gMozmillCrowd = {
    * @param string aPath
    *        Path to the application folder
    */
-  addApplicationToList : function gMozmillCrowd_addApplicationToList(aPath, aDetails) {
-    var tooltip = aDetails.App.Name + " " + aDetails.App.Version;
+  addApplicationToList : function gMozmillCrowd_addApplicationToList(aApplication) {
+    var details = aApplication.details;
+    var tooltip = details.App.Name + " " + details.App.Version;
 
     var menuitem = document.createElement("menuitem");
-    menuitem.setAttribute("value", aPath);
-    menuitem.setAttribute("label", mcuGetAppBundle(aPath));
+    menuitem.setAttribute("label", aApplication.bundle);
     menuitem.setAttribute("tooltiptext", tooltip);
     menuitem.setAttribute("crop", "start");
+    menuitem.value = aApplication;
 
     var popup = document.getElementById("selectApplicationPopup");
     popup.insertBefore(menuitem, popup.childNodes[0]);
@@ -107,8 +107,7 @@ var gMozmillCrowd = {
           file.appendRelativePath("Contents/MacOS/" + EXECUTABLES[gXulRuntime.OS]);
         }
 
-        var details = mcuGetAppDetails(file.path);
-        this.addApplicationToList(file.path, details);
+        this.addApplicationToList(new Application(file.path));
       } catch (ex) {
         window.alert(this._stringBundle.getFormattedString("exception.invalid_application",
                                         [mcuGetAppBundle(file.path)]));
@@ -127,78 +126,29 @@ var gMozmillCrowd = {
    * Opens the preferences dialog
    */
   openPreferences : function gMozmillCrowd_openPreferences(event) {
-    gWindowWatcher.openWindow(null, CHROME_URL + "preferences.xul", "",
-                              "chrome,dialog,modal", null);
+    gWindowWatcher.openWindow(null, "chrome://mozmill-crowd/content/preferences.xul",
+                              "", "chrome,dialog,modal", null);
   },
 
   startTestrun : function gMozmillCrowd_startTestrun(event) {
-    if (this.process != null) {
-      this.process.terminate();
-      this.process = null;
+    if (this._environment.active) {
+      this._environment.stop();
 
-      gMozmillCrowd._applications.disabled = false;
-      gMozmillCrowd._testruns.disabled = false;
-      gMozmillCrowd._execButton.label = this._stringBundle.getString("startTestrun.label");
+      //gMozmillCrowd._applications.disabled = false;
+      //gMozmillCrowd._testruns.disabled = false;
+      //gMozmillCrowd._execButton.label = this._stringBundle.getString("startTestrun.label");
 
       return;
     }
 
-    for (var i = gMozmillCrowd._output.itemCount - 1; i > -1; i--)
-      gMozmillCrowd._output.removeItemAt(i);
+    while (gMozmillCrowd._output.getRowCount() != 0) {
+      gMozmillCrowd._output.removeItemAt(0);
+    }
 
-    if (!mcuPrepareTestrunEnvironment())
-      return;
+    //gMozmillCrowd._applications.disabled = true;
+    //gMozmillCrowd._testruns.disabled = true;
+    //gMozmillCrowd._execButton.label = this._stringBundle.getString("stopTestrun.label");
 
-    gMozmillCrowd._applications.disabled = true;
-    gMozmillCrowd._testruns.disabled = true;
-    gMozmillCrowd._execButton.label = this._stringBundle.getString("stopTestrun.label");
-
-    var myListener = new StreamListener();
-    this.process = mcuExecuteTestrun(this._applications.selectedItem.value,
-                                     this._testruns.selectedItem.value,
-                                     myListener);
+    this._environment.execute("start.sh", this._applications.selectedItem.value);
   }
 };
-
-/**
- * 
- */
-function StreamListener() {
-}
-
-StreamListener.prototype = {
-  QueryInterface: function(aIID) {
-    if (aIID.equals(Ci.nsISupports) ||
-        aIID.equals(Ci.nsIStreamListener))
-      return this;
-    throw Ci.NS_NOINTERFACE;
-  },
-
-  onStartRequest: function(aRequest, aContext) {
-  },
-
-  onStopRequest: function(aRequest, aContext, aStatusCode) {
-    var data = {type: "end", content: null};
-    // Call the main thread to indicate we have finished the process
-    var main = Cc["@mozilla.org/thread-manager;1"].getService().mainThread;
-    main.dispatch(new outputProcessThread(aContext, data),
-                  Ci.nsIThread.DISPATCH_NORMAL);
-  },
-
-  onDataAvailable: function(aRequest, aContext, aInputStream, offset, count) {
-    var stream = CLASS_SCRIPTABLE_INPUT_STREAM.
-                 createInstance(Ci.nsIScriptableInputStream);
-    stream.init(aInputStream);
-    var avail = aInputStream.available();
-
-    var content = stream.read(avail);
-    debugger;
-    var data = {type: "string", content: content};
-    
-    // Call the main thread to indicate we have finished the process
-    var main = Cc["@mozilla.org/thread-manager;1"].getService().mainThread;
-    main.dispatch(new outputProcessThread(aContext, data),
-                  Ci.nsIThread.DISPATCH_NORMAL);
-  }
-}
-

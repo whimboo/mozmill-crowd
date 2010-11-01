@@ -34,12 +34,16 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-var subprocess = {};
-Components.utils.import('resource://mozmill-crowd/subprocess.jsm', subprocess);
+Components.utils.import('resource://mozmill-crowd/subprocess.jsm');
 
-const ENVIRONMENT_PATH = "mozmill-crowd";
-const ENVIRONMENT_INTERPRETER = "/bin/bash"
-const ENVIRONMENT_WRAPPER = "start.sh";
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cr = Components.results;
+const Cu = Components.utils;
+
+
+const INTERNAL_NAME = "mozmill-crowd";
+const VERSION = "0.1pre";
 
 // Executable files for Firefox
 const EXECUTABLES = {
@@ -48,194 +52,230 @@ const EXECUTABLES = {
     "WINNT" : "firefox.exe"
 };
 
-const AVAILABLE_TEST_RUNS = [
-  {name : "BFT Test-run", script: "testrun_bft.py"},
-  {name : "Add-ons Test-run", script: "testrun_addons.py"},
+const AVAILABLE_TEST_RUNS = [{
+  name : "BFT Test-run", script: "testrun_bft.py" }, {
+  name : "Add-ons Test-run", script: "testrun_addons.py" }
 ];
 
-// Chrome URL of the extension
-const CHROME_URL = "chrome://mozmill-crowd/content/";
-
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
-const Cu = Components.utils;
-
-const CLASS_APP_INFO = Cc["@mozilla.org/xre/app-info;1"];
-const CLASS_DIRECTORY_SERVICE = Cc["@mozilla.org/file/directory_service;1"];
-const CLASS_LOCAL_FILE = Cc["@mozilla.org/file/local;1"];
-const CLASS_PREF_SERVICE = Cc["@mozilla.org/preferences-service;1"];
-const CLASS_PROCESS = Cc["@mozilla.org/process/util;1"];
-const CLASS_SCRIPTABLE_INPUT_STREAM = Cc["@mozilla.org/scriptableinputstream;1"];
-const CLASS_THREAD_MANAGER = Cc["@mozilla.org/thread-manager;1"];
-const CLASS_WINDOW_WATCHER = Cc["@mozilla.org/embedcomp/window-watcher;1"];
-
-const FACTORY_INI_PARSER = Cc["@mozilla.org/xpcom/ini-processor-factory;1"];
+const DIRECTORY_SERVICE_CONTRACTID = "@mozilla.org/file/directory_service;1";
+const LOCAL_FILE_CONTRACTID = "@mozilla.org/file/local;1";
+const INI_PARSER_CONTRACTID = "@mozilla.org/xpcom/ini-processor-factory;1";
 
 // Default folders
-const DIR_APPLICATION = "CurProcD";
-const DIR_PROFILE = "ProfD";
 const DIR_TMP = "TmpD";
 
 // Application specific information
-var gAppInfo = CLASS_APP_INFO.getService(Ci.nsIXULAppInfo);
+var gAppInfo = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo);
 var gXulRuntime = gAppInfo.QueryInterface(Ci.nsIXULRuntime);
 
 // Cached instances for accessing preferences
-var gPrefService = CLASS_PREF_SERVICE.getService(Ci.nsIPrefService);
+var gPrefService = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefService);
 var gPrefBranch = gPrefService.QueryInterface(Ci.nsIPrefBranch);
-var gWindowWatcher = CLASS_WINDOW_WATCHER.getService(Ci.nsIWindowWatcher);
 
 
 /**
- * Executes the specified test-run with the given application
+ *
  */
-function mcuExecuteTestrun(aAppPath, aScriptName, aListener) {
-  // Get a handle of the bash interpreter
-  var cmd = CLASS_LOCAL_FILE.createInstance(Ci.nsILocalFile);
-  cmd.initWithPath(ENVIRONMENT_INTERPRETER);
+function Application(aPath) {
+  this._dirSrv = Cc[DIRECTORY_SERVICE_CONTRACTID].
+                 getService(Ci.nsIProperties);
 
-  var env = mcuGetTestEnvironmentPath();
-
-  // Wrapper script to start virtual environment and execute the test-run
-  var wrapper_script = env.clone();
-  wrapper_script.append(ENVIRONMENT_WRAPPER);
-
-  // Selected test-run script from the mozmill-automation repository
-  var testrun_script = env.clone();
-  testrun_script.append("mozmill-automation");
-  testrun_script.append(aScriptName);
-
-  var args = [
-    wrapper_script.path,
-    env.path,
-    testrun_script.path
-  ];
-
-  /// XXX: Bit hacky at the moment
-  if (aScriptName == "testrun_addons.py") {
-    var trust_unsecure = getPref("extensions.mozmill-crowd.trust_unsecure_addons", false);
-    if (trust_unsecure)
-      args = args.concat("--with-untrusted");
-  }
-
-  // Send results to brasstack
-  var send_report = getPref("extensions.mozmill-crowd.report.send", false);
-  var report_url = getPref("extensions.mozmill-crowd.report.server", "");
-  if (send_report && report_url != "")
-    args = args.concat("--report=" + report_url);
-
-  // Add binary
-  args = args.concat(mcuGetAppBundle(aAppPath));
-
-  //var pipeTrans = CLASS_IPC_TRANSPORT.createInstance(Ci.nsIPipeTransport);
-  //pipeTrans.init(cmd, args, args.length, [], 0, 0, "", true, true, null);
-  //pipeTrans.loggingEnabled = true;
-  //
-  //pipeTrans.asyncRead(aListener, null, 0, -1, 0);
-  //
-  //return pipeTrans;
-
-  //var process = CLASS_PROCESS.createInstance(Ci.nsIProcess);
-  //process.init(cmd);
-  //process.run(false, args, args.length);
+  this._path = aPath || this.currentAppPath();
 }
 
-/**
- * Get the application bundle path on OS X
- *
- * @param string aPath
- *        Path to the application folder
- *
- * @returns Path to the application bundle
- */
-function mcuGetAppBundle(aPath) {
-  if (gXulRuntime.OS == "Darwin") {
-    return /(.*\.app).*/.exec(aPath)[1];
-  } else {
-    return aPath;
-  }
-}
+Application.prototype = {
 
-/**
- * Retrieve application details from the application.ini file
- *
- * @param string aPath
- *        Path to the application executable
- *
- * @returns Object with the information
- */
-function mcuGetAppDetails(aPath) {
-  // Get a reference to the application.ini file
-  var iniFile = CLASS_LOCAL_FILE.createInstance(Ci.nsILocalFile);
-  iniFile.initWithPath(aPath);
-  iniFile = iniFile.parent;
-  iniFile.append("application.ini");
-  iniFile.isFile();
+  /**
+   * Get the application bundle path on OS X
+   *
+   * @param string aPath
+   *        Path to the application folder
+   *
+   * @returns Path to the application bundle
+   */
+  get bundle() {
+    if (gXulRuntime.OS == "Darwin") {
+      return /(.*\.app).*/.exec(this._path)[1];
+    } else {
+      return this._path;
+    }
+  },
 
-  // Parse the ini file to retrieve all values
-  var parser = FACTORY_INI_PARSER.getService(Ci.nsIINIParserFactory).
-               createINIParser(iniFile);
+  /**
+   * Retrieve application details from the application.ini file
+   *
+   * @param string aPath
+   *        Path to the application executable
+   *
+   * @returns Object with the information
+   */
+  get details() {
+    // Get a reference to the application.ini file
+    var iniFile = Cc[LOCAL_FILE_CONTRACTID].
+                  createInstance(Ci.nsILocalFile);
+    iniFile.initWithPath(this._path);
+    iniFile = iniFile.parent;
+    iniFile.append("application.ini");
+    iniFile.isFile();
 
-  var contents = { };
-  var sectionsEnum = parser.getSections();
-  while (sectionsEnum && sectionsEnum.hasMore()) {
-    var section = sectionsEnum.getNext();
-    var keys = { };
+    // Parse the ini file to retrieve all values
+    var factory = Cc[INI_PARSER_CONTRACTID].
+                  getService(Ci.nsIINIParserFactory);
+    var parser = factory.createINIParser(iniFile);
 
-    var keysEnum = parser.getKeys(section);
-    while (keysEnum && keysEnum.hasMore()) {
-      var key = keysEnum.getNext();
+    var contents = { };
+    var sectionsEnum = parser.getSections();
+    while (sectionsEnum && sectionsEnum.hasMore()) {
+      var section = sectionsEnum.getNext();
+      var keys = { };
 
-      keys[key] = parser.getString(section, key);
+      var keysEnum = parser.getKeys(section);
+      while (keysEnum && keysEnum.hasMore()) {
+        var key = keysEnum.getNext();
+
+        keys[key] = parser.getString(section, key);
+      }
+
+      contents[section] = keys;
     }
 
-    contents[section] = keys;
+    return contents;
+  },
+
+  get path() {
+    return this._path;
+  },
+
+  /**
+   * Get the path of the currently running application
+   *
+   * @returns Path of the application
+   */
+  currentAppPath: function Application_currentAppPath() {
+    var dir = this._dirSrv.get("CurProcD", Ci.nsIFile);
+    dir.append(EXECUTABLES[gXulRuntime.OS]);
+
+    return dir.path;
   }
-
-  return contents;
 }
 
-/**
- * Get the path of the currently running application
- *
- * @returns Path of the application
- */
-function mcuGetCurAppPath() {
-  var dir = CLASS_DIRECTORY_SERVICE.
-            getService(Ci.nsIProperties).get(DIR_APPLICATION, Ci.nsIFile);
-  dir.append(EXECUTABLES[gXulRuntime.OS]);
 
-  return dir.path;
+function Environment(aDir) {
+  this._dirSrv = Cc[DIRECTORY_SERVICE_CONTRACTID].
+                 getService(Ci.nsIProperties);
+
+  this._dir = aDir || this.getDefaultDir();
+  this._process = null;
 }
 
-/**
- * Retrieve the location of test-run environment from within the users profile
- *
- * @returns The environment path as nsILocalFile instance
- */
-function mcuGetTestEnvironmentPath() {
-  var dir = CLASS_DIRECTORY_SERVICE.
-            getService(Ci.nsIProperties).get(DIR_PROFILE, Ci.nsIFile);
-  dir.append(ENVIRONMENT_PATH);
+Environment.prototype = {
 
-  return dir;
-}
+  /**
+   *
+   */
+  get dir() {
+    return this._dir;
+  },
 
-/**
- *
- */
-function mcuPrepareTestrunEnvironment() {
-  // Check if the test-run environment exists
-  var envTestrun = mcuGetTestEnvironmentPath();
-  if (!envTestrun.exists()) {
-    alert("Test environment doesn't exist yet.")
-    return false;
+  /**
+   *
+   */
+  get active() {
+    return (this._process != null);
+  },
+
+  /**
+   *
+   */
+  execute: function Environment_execute(aScript, aApplication) {
+    var script = null;
+
+    if (this._process)
+      throw new Exception("There is already a running process. Wait until it has been finished.");
+
+    if (aScript != "") {
+      var script = this.dir.clone();
+      script.append(aScript);
+    }
+    else {
+      throw new Error("No script specified.");
+    }
+
+    var testrun_script = this.dir.clone();
+    testrun_script.append("mozmill-automation");
+    testrun_script.append("testrun_general.py");
+
+    var args = [script.path, this.dir.path, testrun_script.path, aApplication.bundle];
+
+    /// XXX: Bit hacky at the moment
+    if (aScript == "testrun_addons.py") {
+      var trust_unsecure = getPref("extensions.mozmill-crowd.trust_unsecure_addons", false);
+      if (trust_unsecure)
+        args = args.concat("--with-untrusted");
+    }
+
+    // Send results to brasstack
+    var send_report = getPref("extensions.mozmill-crowd.report.send", false);
+    var report_url = getPref("extensions.mozmill-crowd.report.server", "");
+    if (send_report && report_url != "")
+      args = args.concat("--report=" + report_url);
+
+    var self = this;
+    this._process = subprocess.call({
+      command: "/bin/bash",
+      arguments: args,
+      workdir: this.dir,
+      stdout: subprocess.ReadablePipe(function(data) {
+        var listbox = gMozmillCrowd._output;
+        listbox.appendItem(data, null);
+        listbox.ensureIndexIsVisible(listbox.itemCount - 1);
+      }),
+      stderr: subprocess.ReadablePipe(function(data) {
+        var listbox = gMozmillCrowd._output;
+        listbox.appendItem(data, null);
+        listbox.ensureIndexIsVisible(listbox.itemCount - 1);
+      }),
+      onFinished: subprocess.Terminate(function() {
+        var listbox = gMozmillCrowd._output;
+        listbox.appendItem("** Exit code: " + this.exitCode, null);
+        listbox.ensureIndexIsVisible(listbox.itemCount - 1);
+
+        self._process = null;
+      })
+    });
+  },
+
+  getDefaultDir: function Environment_getDefaultDir() {
+    var dir = this._dirSrv.get("ProfD", Ci.nsIFile);
+    dir.append(INTERNAL_NAME);
+
+    return dir;
+  },
+
+  /**
+   *
+   */
+  prepare: function Environment_prepare() {
+    // Check if the test-run environment exists
+    if (!this.dir.exists()) {
+      window.alert("Test environment doesn't exist yet.")
+
+      // TODO: code to setup the test environment
+      return false;
+    }
+
+    return true;
+  },
+
+  /**
+   *
+   */
+  stop : function Environment_stop() {
+    if (this.active) {
+      this._process.kill();
+    }
   }
-
-  return true;
 }
-
 
 /**
  * Retrieve the value of an individual preference.
@@ -312,41 +352,3 @@ function setPref(prefName, value, interfaceType) {
 
   return true;
 }
-
-var outputProcessThread = function(threadID, result) {
-  this.threadID = threadID;
-  this.result = result;
-};
-
-outputProcessThread.prototype = {
-  run: function() {
-    try {
-      Components.reportError(this.result.type);
-      debugger;
-      switch (this.result.type) {
-        case "string":
-          var listbox = gMozmillCrowd._output;
-          listbox.appendItem(this.result.content, null);
-          listbox.ensureIndexIsVisible(listbox.itemCount - 1);
-          break;
-        case "end":
-          gMozmillCrowd._applications.disabled = false;
-          gMozmillCrowd._testruns.disabled = false;
-          gMozmillCrowd._execButton.label = this._stringBundle.getString("startTestrun.label");
-
-          break;
-        default:
-      }
-    } catch(err) {
-      Components.utils.reportError(err);
-    }
-  },
-  
-  QueryInterface: function(iid) {
-    if (iid.equals(Components.interfaces.nsIRunnable) ||
-        iid.equals(Components.interfaces.nsISupports)) {
-            return this;
-    }
-    throw Components.results.NS_ERROR_NO_INTERFACE;
-  }
-};
