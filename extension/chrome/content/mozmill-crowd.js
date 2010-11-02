@@ -145,6 +145,7 @@ var gMozmillCrowd = {
     //gMozmillCrowd._testruns.disabled = true;
     //gMozmillCrowd._execButton.label = this._stringBundle.getString("stopTestrun.label");
 
+    this._environment.prepare();
     this._environment.execute("start.sh", this._applications.selectedItem.value);
   }
 };

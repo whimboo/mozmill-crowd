@@ -43,6 +43,7 @@ const Cu = Components.utils;
 
 
 const INTERNAL_NAME = "mozmill-crowd";
+const ID = "mozmill-crowd@qa.mozilla.org"
 const VERSION = "0.1pre";
 
 // Executable files for Firefox
@@ -242,6 +243,9 @@ Environment.prototype = {
     });
   },
 
+  /**
+   *
+   */
   getDefaultDir: function Environment_getDefaultDir() {
     var dir = this._dirSrv.get("ProfD", Ci.nsIFile);
     dir.append(INTERNAL_NAME);
@@ -252,16 +256,49 @@ Environment.prototype = {
   /**
    *
    */
-  prepare: function Environment_prepare() {
-    // Check if the test-run environment exists
-    if (!this.dir.exists()) {
-      window.alert("Test environment doesn't exist yet.")
+  getExtensionDir: function Environment_getExtensionDir() {
+    var dir = this._dirSrv.get("ProfD", Ci.nsIFile);
+    dir.append("extensions");
+    dir.append(ID);
 
-      // TODO: code to setup the test environment
-      return false;
+    return dir;
+  },
+
+  /**
+   *
+   */
+  prepare: function Environment_prepare() {
+    if (this.dir.exists())
+      return;
+
+    var dir = this.getExtensionDir();
+    dir.append("scripts");
+    dir.append("Darwin");
+
+    var enumerator = dir.directoryEntries;
+    while (enumerator.hasMoreElements()) {
+      var file = enumerator.getNext().QueryInterface(Ci.nsIFile);
+      file.copyTo(this.dir, "");
     }
 
-    return true;
+    var process = subprocess.call({
+      command: "/bin/bash",
+      arguments: ["setup.sh", this.dir.path],
+      workdir: this.dir,
+      stdout: subprocess.ReadablePipe(function(data) {
+        var output = gMozmillCrowd._output;
+        output.value = output.value + data;
+      }),
+      stderr: subprocess.ReadablePipe(function(data) {
+        var output = gMozmillCrowd._output;
+        output.value = output.value + data;
+      }),
+      onFinished: subprocess.Terminate(function() {
+        var output = gMozmillCrowd._output;
+        output.value = output.value + "** Exit code: " + this.exitCode;
+      })
+    });
+    process.wait();
   },
 
   /**
