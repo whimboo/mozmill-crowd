@@ -5,4 +5,4 @@ source $1/env/bin/activate
 easy_install -U mozmill jsbridge mozrunner
 
 # start test-run
-$(which python) $2 $3 $4 $5 $6 $7 $8 $9
+python -u $2 $3 $4 $5 $6 $7 $8 $9
