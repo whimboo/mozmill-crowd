@@ -54,7 +54,7 @@ const EXECUTABLES = {
 };
 
 const AVAILABLE_TEST_RUNS = [{
-  name : "BFT Test-run", script: "testrun_bft.py" }, {
+  name : "General Test-run", script: "testrun_general.py" }, {
   name : "Add-ons Test-run", script: "testrun_addons.py" }
 ];
 
@@ -188,7 +188,7 @@ Environment.prototype = {
   /**
    *
    */
-  execute: function Environment_execute(aScript, aApplication) {
+  execute: function Environment_execute(aScript, aApplication, aTestrun) {
     var script = null;
 
     if (this._process)
@@ -204,12 +204,12 @@ Environment.prototype = {
 
     var testrun_script = this.dir.clone();
     testrun_script.append("mozmill-automation");
-    testrun_script.append("testrun_general.py");
+    testrun_script.append(aTestrun);
 
-    var args = [script.path, this.dir.path, testrun_script.path, aApplication.bundle];
+    var args = [script.path, this.dir.path, testrun_script.path];
 
     /// XXX: Bit hacky at the moment
-    if (aScript == "testrun_addons.py") {
+    if (aTestrun == "testrun_addons.py") {
       var trust_unsecure = getPref("extensions.mozmill-crowd.trust_unsecure_addons", false);
       if (trust_unsecure)
         args = args.concat("--with-untrusted");
@@ -221,22 +221,27 @@ Environment.prototype = {
     if (send_report && report_url != "")
       args = args.concat("--report=" + report_url);
 
+    args = args.concat(aApplication.bundle)
+
     var self = this;
     this._process = subprocess.call({
       command: "/bin/bash",
       arguments: args,
       workdir: this.dir,
       stdout: subprocess.ReadablePipe(function(data) {
-        var output = gMozmillCrowd._output;
-        output.value = output.value + data;
+        var listbox = gMozmillCrowd._output;
+        listbox.appendItem(data, null);
+        listbox.ensureIndexIsVisible(listbox.itemCount - 1);
       }),
       stderr: subprocess.ReadablePipe(function(data) {
-        var output = gMozmillCrowd._output;
-        output.value = output.value + data;
+        var listbox = gMozmillCrowd._output;
+        listbox.appendItem(data, null);
+        listbox.ensureIndexIsVisible(listbox.itemCount - 1);
       }),
       onFinished: subprocess.Terminate(function() {
-        var output = gMozmillCrowd._output;
-        output.value = output.value + "** Exit code: " + this.exitCode;
+        var listbox = gMozmillCrowd._output;
+        listbox.appendItem(data, null);
+        listbox.ensureIndexIsVisible(listbox.itemCount - 1);
 
         self._process = null;
       })
@@ -286,16 +291,19 @@ Environment.prototype = {
       arguments: ["setup.sh", this.dir.path],
       workdir: this.dir,
       stdout: subprocess.ReadablePipe(function(data) {
-        var output = gMozmillCrowd._output;
-        output.value = output.value + data;
+        var listbox = gMozmillCrowd._output;
+        listbox.appendItem(data, null);
+        listbox.ensureIndexIsVisible(listbox.itemCount - 1);
       }),
       stderr: subprocess.ReadablePipe(function(data) {
-        var output = gMozmillCrowd._output;
-        output.value = output.value + data;
+        var listbox = gMozmillCrowd._output;
+        listbox.appendItem(data, null);
+        listbox.ensureIndexIsVisible(listbox.itemCount - 1);
       }),
       onFinished: subprocess.Terminate(function() {
-        var output = gMozmillCrowd._output;
-        output.value = output.value + "** Exit code: " + this.exitCode;
+        var listbox = gMozmillCrowd._output;
+        listbox.appendItem(data, null);
+        listbox.ensureIndexIsVisible(listbox.itemCount - 1);
       })
     });
     process.wait();
