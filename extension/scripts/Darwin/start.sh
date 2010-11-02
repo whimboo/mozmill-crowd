@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # change into the virtual environment and check for updates
-source $1/release/bin/activate
+source $1/env/bin/activate
 easy_install -U mozmill jsbridge mozrunner
 
 # start test-run
