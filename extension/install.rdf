@@ -7,9 +7,11 @@
     <em:type>2</em:type>
     <em:name>MozMill Crowd</em:name>
     <em:version>0.1pre</em:version>
-    <em:creator>Henrik Skupin (http://www.hskupin.info) &lt;hskupin@mozilla.com&gt;</em:creator>
-    <em:contributor></em:contributor>
-    <em:description>MozMill tests executed from the crowd</em:description>
+    <em:creator>Mozilla Corporation</em:creator>
+    <em:contributor>Henrik Skupin</em:contributor>
+    <em:contributor>Aaron Train</em:contributor>
+    <em:homepageURL>http://people.mozilla.com/~hskupin/mozmill-crowd/</em:homepageURL>
+    <em:description>Mozmill tests executed from the crowd</em:description>
     <em:aboutURL>chrome://mozmill-crowd/content/about.xul</em:aboutURL>
     <em:optionsURL>chrome://mozmill-crowd/content/preferences.xul</em:optionsURL>
 
