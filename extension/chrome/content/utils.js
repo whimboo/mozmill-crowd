@@ -58,6 +58,23 @@ const AVAILABLE_TEST_RUNS = [{
   name : "Add-ons Test-run", script: "testrun_addons.py" }
 ];
 
+// XXX: For now lets use constants. Has to be moved out to a web service which
+// will return the latest package and the hash
+const ENVIRONMENT_DATA = {
+  Darwin : {
+    url : "n/a",
+    filename : "n/a"
+  },
+  Linux : {
+    url : "n/a",
+    filename : "n/a"
+  },
+  WINNT : {
+    url : "http://people.mozilla.com/~hskupin/mozmill-crowd/mozmill-win.exe",
+    filename : "mozmill-win.exe"
+  }
+};
+
 const DIRECTORY_SERVICE_CONTRACTID = "@mozilla.org/file/directory_service;1";
 const LOCAL_FILE_CONTRACTID = "@mozilla.org/file/local;1";
 const INI_PARSER_CONTRACTID = "@mozilla.org/xpcom/ini-processor-factory;1";
@@ -181,8 +198,22 @@ Environment.prototype = {
   /**
    *
    */
-  get active() {
+  get isActive() {
     return (this._process != null);
+  },
+
+  /**
+   *
+   */
+  download : function Environment_download() {
+    var target = this.dir.clone();
+    target.append(ENVIRONMENT_DATA[gXulRuntime.OS].filename);
+
+    window.openDialog("chrome://mozmill-crowd/content/download.xul",
+                      "Download",
+                      "dialog, modal, centerscreen, titlebar=no",
+                      ENVIRONMENT_DATA[gXulRuntime.OS].url,
+                      target);
   },
 
   /**
@@ -206,7 +237,11 @@ Environment.prototype = {
     testrun_script.append("mozmill-automation");
     testrun_script.append(aTestrun);
 
-    var args = [script.path, this.dir.path, testrun_script.path];
+    var repository = this.dir.clone();
+    repository.append("mozmill-tests");
+
+    var args = [script.path, this.dir.path, testrun_script.path,
+                "--repository=" + repository.path];
 
     /// XXX: Bit hacky at the moment
     if (aTestrun == "testrun_addons.py") {
@@ -261,12 +296,18 @@ Environment.prototype = {
   /**
    *
    */
-  getExtensionDir: function Environment_getExtensionDir() {
-    var dir = this._dirSrv.get("ProfD", Ci.nsIFile);
-    dir.append("extensions");
-    dir.append(ID);
+  install : function Environment_install() {
+    var process = null;
 
-    return dir;
+    var archive = this.dir.clone();
+    archive.append(ENVIRONMENT_DATA[gXulRuntime.OS].filename);
+
+    if (archive.exists()) {
+      process = Cc["@mozilla.org/process/util;1"].
+                createInstance(Ci.nsIProcess);
+      process.init(archive);
+      process.run(true, ["-y"], 1);
+    }
   },
 
   /**
@@ -276,44 +317,18 @@ Environment.prototype = {
     if (this.dir.exists())
       return;
 
-    var dir = this.getExtensionDir();
-    dir.append("scripts");
-    dir.append("Darwin");
-
-    var enumerator = dir.directoryEntries;
-    while (enumerator.hasMoreElements()) {
-      var file = enumerator.getNext().QueryInterface(Ci.nsIFile);
-      file.copyTo(this.dir, "");
-    }
-
-    var process = subprocess.call({
-      command: "/bin/bash",
-      arguments: ["setup.sh", this.dir.path],
-      workdir: this.dir,
-      stdout: subprocess.ReadablePipe(function(data) {
-        var listbox = gMozmillCrowd._output;
-        listbox.appendItem(data, null);
-        listbox.ensureIndexIsVisible(listbox.itemCount - 1);
-      }),
-      stderr: subprocess.ReadablePipe(function(data) {
-        var listbox = gMozmillCrowd._output;
-        listbox.appendItem(data, null);
-        listbox.ensureIndexIsVisible(listbox.itemCount - 1);
-      }),
-      onFinished: subprocess.Terminate(function() {
-        var listbox = gMozmillCrowd._output;
-        listbox.appendItem(data, null);
-        listbox.ensureIndexIsVisible(listbox.itemCount - 1);
-      })
-    });
-    process.wait();
+    // If the environment hasn't been setup yet, download and install the package
+    window.alert("Test Environment has to be downloaded.");
+    //this.dir.create(0x01, 0755);
+    this.download();
+    this.install();
   },
 
   /**
    *
    */
   stop : function Environment_stop() {
-    if (this.active) {
+    if (this.isActive) {
       this._process.kill();
     }
   }
