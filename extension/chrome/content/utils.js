@@ -34,15 +34,13 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-Components.utils.import('resource://mozmill-crowd/subprocess.jsm');
-
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
 const Cu = Components.utils;
 
 
-const INTERNAL_NAME = "mozmill-crowd";
+const FOLDER_NAME = "crowd";
 const ID = "mozmill-crowd@qa.mozilla.org"
 const VERSION = "0.1pre";
 
@@ -183,7 +181,6 @@ function Environment(aDir) {
                  getService(Ci.nsIProperties);
 
   this._dir = aDir || this.getDefaultDir();
-  this._process = null;
 }
 
 Environment.prototype = {
@@ -221,12 +218,11 @@ Environment.prototype = {
    */
   execute: function Environment_execute(aScript, aApplication, aTestrun) {
     var script = null;
-
-    if (this._process)
-      throw new Exception("There is already a running process. Wait until it has been finished.");
+    var process = null;
 
     if (aScript != "") {
       var script = this.dir.clone();
+      script.append("mozmill-env");
       script.append(aScript);
     }
     else {
@@ -237,11 +233,10 @@ Environment.prototype = {
     testrun_script.append("mozmill-automation");
     testrun_script.append(aTestrun);
 
-    var repository = this.dir.clone();
-    repository.append("mozmill-tests");
+    var repository = getPref("extensions.mozmill-crowd.repositories.mozmill-tests", "");
 
-    var args = [script.path, this.dir.path, testrun_script.path,
-                "--repository=" + repository.path];
+    var args = ["python", testrun_script.path,
+                "--repository=" + repository];
 
     /// XXX: Bit hacky at the moment
     if (aTestrun == "testrun_addons.py") {
@@ -258,29 +253,11 @@ Environment.prototype = {
 
     args = args.concat(aApplication.bundle)
 
-    var self = this;
-    this._process = subprocess.call({
-      command: "/bin/bash",
-      arguments: args,
-      workdir: this.dir,
-      stdout: subprocess.ReadablePipe(function(data) {
-        var listbox = gMozmillCrowd._output;
-        listbox.appendItem(data, null);
-        listbox.ensureIndexIsVisible(listbox.itemCount - 1);
-      }),
-      stderr: subprocess.ReadablePipe(function(data) {
-        var listbox = gMozmillCrowd._output;
-        listbox.appendItem(data, null);
-        listbox.ensureIndexIsVisible(listbox.itemCount - 1);
-      }),
-      onFinished: subprocess.Terminate(function() {
-        var listbox = gMozmillCrowd._output;
-        listbox.appendItem(data, null);
-        listbox.ensureIndexIsVisible(listbox.itemCount - 1);
-
-        self._process = null;
-      })
-    });
+    // TODO: Has to be a non-blocking process
+    process = Cc["@mozilla.org/process/util;1"].
+              createInstance(Ci.nsIProcess);
+    process.init(script);
+    process.run(true, args, args.length);
   },
 
   /**
@@ -288,7 +265,7 @@ Environment.prototype = {
    */
   getDefaultDir: function Environment_getDefaultDir() {
     var dir = this._dirSrv.get("ProfD", Ci.nsIFile);
-    dir.append(INTERNAL_NAME);
+    dir.append(FOLDER_NAME);
 
     return dir;
   },

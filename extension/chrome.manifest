@@ -4,7 +4,3 @@ resource    mozmill-crowd                 resource/
 skin        mozmill-crowd   classic/1.0   chrome/skin/
 
 overlay     chrome://browser/content/browser.xul          chrome://mozmill-crowd/content/browser-overlay.xul
-
-interfaces  components/ipc.xpt
-binary-component components/darwin_x86/libipc.dylib ABI=Darwin_x86-gcc3
-binary-component components/darwin_x86_64/libipc.dylib ABI=Darwin_x86_64-gcc3

@@ -150,7 +150,7 @@ var gMozmillCrowd = {
     //gMozmillCrowd._execButton.label = this._stringBundle.getString("stopTestrun.label");
 
     this._environment.prepare();
-    this._environment.execute("start.sh",
+    this._environment.execute("start.cmd",
                               this._applications.selectedItem.value,
                               this._testruns.selectedItem.value);
   }
