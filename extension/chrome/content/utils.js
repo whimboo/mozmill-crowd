@@ -283,7 +283,7 @@ Environment.prototype = {
       process = Cc["@mozilla.org/process/util;1"].
                 createInstance(Ci.nsIProcess);
       process.init(archive);
-      process.run(true, ["-y"], 1);
+      process.runw(true, ["-y", "-o" + this.dir.path], 2);
     }
   },
 
@@ -296,9 +296,42 @@ Environment.prototype = {
 
     // If the environment hasn't been setup yet, download and install the package
     window.alert("Test Environment has to be downloaded.");
-    //this.dir.create(0x01, 0755);
+    this.dir.create(0x01, 0755);
     this.download();
     this.install();
+    this.setup();
+  },
+
+  /**
+   *
+   */
+  setup: function Environment_setup() {
+    var process = null;
+
+    var path = this.dir.clone();
+    path.append("mozmill-automation");
+
+    if (!path.exists()) {
+      var script = this.dir.clone();
+      script.append("mozmill-env");
+      script.append("setup.cmd");
+
+      process = Cc["@mozilla.org/process/util;1"].
+                createInstance(Ci.nsIProcess);
+      process.init(script);
+      process.run(true, [], 0);
+
+      var repository = getPref("extensions.mozmill-crowd.repositories.mozmill-automation", "");
+
+      script = this.dir.clone();
+      script.append("mozmill-env");
+      script.append("start.cmd");
+
+      process = Cc["@mozilla.org/process/util;1"].
+                createInstance(Ci.nsIProcess);
+      process.init(script);
+      process.run(true, ["hg", "clone", repository, path.path], 4);
+    }
   },
 
   /**
