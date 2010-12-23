@@ -34,9 +34,12 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-var gWindowWatcher = Cc["@mozilla.org/embedcomp/window-watcher;1"].
-                     getService(Ci.nsIWindowWatcher);
+var application = { };
+Cu.import('resource://mozmill-crowd/application.js', application);
 
+/**
+ *
+ */
 var gMozmillCrowd = {
   /**
    * Initialize the Mozmill Crowd extension
@@ -52,7 +55,7 @@ var gMozmillCrowd = {
     this._stringBundle = document.getElementById("mozmill-crowd-stringbundle");
 
     // Add the current application as default
-    this.addApplicationToList(new Application());
+    this.addApplicationToList(new application.Application());
 
     // Populate the test-run drop down with allowed test-runs
     var popup = document.getElementById("selectTestrunPopup");
@@ -107,7 +110,7 @@ var gMozmillCrowd = {
           file.appendRelativePath("Contents/MacOS/" + EXECUTABLES[gXulRuntime.OS]);
         }
 
-        this.addApplicationToList(new Application(file.path));
+        this.addApplicationToList(new application.Application(file.path));
       } catch (ex) {
         window.alert(this._stringBundle.getFormattedString("exception.invalid_application",
                                         [mcuGetAppBundle(file.path)]));
@@ -126,8 +129,11 @@ var gMozmillCrowd = {
    * Opens the preferences dialog
    */
   openPreferences : function gMozmillCrowd_openPreferences(event) {
-    gWindowWatcher.openWindow(null, "chrome://mozmill-crowd/content/preferences.xul",
-                              "", "chrome,dialog,modal", null);
+    var windowWatcher = Cc["@mozilla.org/embedcomp/window-watcher;1"].
+                        getService(Ci.nsIWindowWatcher);
+
+    windowWatcher.openWindow(null, "chrome://mozmill-crowd/content/preferences.xul",
+                             "", "chrome,dialog,modal", null);
   },
 
   startTestrun : function gMozmillCrowd_startTestrun(event) {

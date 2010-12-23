@@ -45,13 +45,6 @@ const FOLDER_NAME = "crowd";
 const ID = "mozmill-crowd@qa.mozilla.org"
 const VERSION = "0.1pre";
 
-// Executable files for Firefox
-const EXECUTABLES = {
-    "Darwin" : "firefox-bin",
-    "Linux" : "firefox-bin",
-    "WINNT" : "firefox.exe"
-};
-
 const AVAILABLE_TEST_RUNS = [{
   name : "General Test-run", script: "testrun_general.py" }, {
   name : "Add-ons Test-run", script: "testrun_addons.py" }
@@ -71,10 +64,6 @@ const ENVIRONMENT_DATA = {
   }
 };
 
-const DIRECTORY_SERVICE_CONTRACTID = "@mozilla.org/file/directory_service;1";
-const LOCAL_FILE_CONTRACTID = "@mozilla.org/file/local;1";
-const INI_PARSER_CONTRACTID = "@mozilla.org/xpcom/ini-processor-factory;1";
-
 // Default folders
 const DIR_TMP = "TmpD";
 
@@ -87,95 +76,8 @@ var gPrefService = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPre
 var gPrefBranch = gPrefService.QueryInterface(Ci.nsIPrefBranch);
 
 
-/**
- *
- */
-function Application(aPath) {
-  this._dirSrv = Cc[DIRECTORY_SERVICE_CONTRACTID].
-                 getService(Ci.nsIProperties);
-
-  this._path = aPath || this.currentAppPath();
-}
-
-Application.prototype = {
-
-  /**
-   * Get the application bundle path on OS X
-   *
-   * @param string aPath
-   *        Path to the application folder
-   *
-   * @returns Path to the application bundle
-   */
-  get bundle() {
-    if (gXulRuntime.OS == "Darwin") {
-      return /(.*\.app).*/.exec(this._path)[1];
-    } else {
-      return this._path;
-    }
-  },
-
-  /**
-   * Retrieve application details from the application.ini file
-   *
-   * @param string aPath
-   *        Path to the application executable
-   *
-   * @returns Object with the information
-   */
-  get details() {
-    // Get a reference to the application.ini file
-    var iniFile = Cc[LOCAL_FILE_CONTRACTID].
-                  createInstance(Ci.nsILocalFile);
-    iniFile.initWithPath(this._path);
-    iniFile = iniFile.parent;
-    iniFile.append("application.ini");
-    iniFile.isFile();
-
-    // Parse the ini file to retrieve all values
-    var factory = Cc[INI_PARSER_CONTRACTID].
-                  getService(Ci.nsIINIParserFactory);
-    var parser = factory.createINIParser(iniFile);
-
-    var contents = { };
-    var sectionsEnum = parser.getSections();
-    while (sectionsEnum && sectionsEnum.hasMore()) {
-      var section = sectionsEnum.getNext();
-      var keys = { };
-
-      var keysEnum = parser.getKeys(section);
-      while (keysEnum && keysEnum.hasMore()) {
-        var key = keysEnum.getNext();
-
-        keys[key] = parser.getString(section, key);
-      }
-
-      contents[section] = keys;
-    }
-
-    return contents;
-  },
-
-  get path() {
-    return this._path;
-  },
-
-  /**
-   * Get the path of the currently running application
-   *
-   * @returns Path of the application
-   */
-  currentAppPath: function Application_currentAppPath() {
-    var dir = this._dirSrv.get("CurProcD", Ci.nsIFile);
-    dir.append(EXECUTABLES[gXulRuntime.OS]);
-
-    return dir.path;
-  }
-}
-
-
 function Environment(aDir) {
-  this._dirSrv = Cc[DIRECTORY_SERVICE_CONTRACTID].
+  this._dirSrv = Cc["@mozilla.org/file/directory_service;1"].
                  getService(Ci.nsIProperties);
 
   this._dir = aDir || this.getDefaultDir();
