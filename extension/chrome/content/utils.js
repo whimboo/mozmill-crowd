@@ -39,6 +39,7 @@ const Ci = Components.interfaces;
 const Cr = Components.results;
 const Cu = Components.utils;
 
+Cu.import("resource://gre/modules/FileUtils.jsm");
 
 const FOLDER_NAME = "crowd";
 const ID = "mozmill-crowd@qa.mozilla.org"
@@ -60,16 +61,13 @@ const AVAILABLE_TEST_RUNS = [{
 // will return the latest package and the hash
 const ENVIRONMENT_DATA = {
   Darwin : {
-    url : "n/a",
-    filename : "n/a"
+    url : "http://people.mozilla.com/~hskupin/mozmill-crowd/mozmill-mac.zip"
   },
   Linux : {
-    url : "n/a",
-    filename : "n/a"
+    url : "http://people.mozilla.com/~hskupin/mozmill-crowd/mozmill-linux.zip"
   },
   WINNT : {
-    url : "http://people.mozilla.com/~hskupin/mozmill-crowd/mozmill-win.exe",
-    filename : "mozmill-win.exe"
+    url : "http://people.mozilla.com/~hskupin/mozmill-crowd/mozmill-windows.zip"
   }
 };
 
@@ -204,13 +202,14 @@ Environment.prototype = {
    */
   download : function Environment_download() {
     var target = this.dir.clone();
-    target.append(ENVIRONMENT_DATA[gXulRuntime.OS].filename);
+    target.append("mozmill-env.zip");
 
     window.openDialog("chrome://mozmill-crowd/content/download.xul",
                       "Download",
                       "dialog, modal, centerscreen, titlebar=no",
                       ENVIRONMENT_DATA[gXulRuntime.OS].url,
                       target);
+    this.extract(target, this.dir.clone());
   },
 
   /**
@@ -273,18 +272,12 @@ Environment.prototype = {
   /**
    *
    */
-  install : function Environment_install() {
-    var process = null;
-
-    var archive = this.dir.clone();
-    archive.append(ENVIRONMENT_DATA[gXulRuntime.OS].filename);
-
-    if (archive.exists()) {
-      process = Cc["@mozilla.org/process/util;1"].
-                createInstance(Ci.nsIProcess);
-      process.init(archive);
-      process.runw(true, ["-y", "-o" + this.dir.path], 2);
-    }
+  extract : function Environment_extract(aFile, aDir) {
+    window.openDialog("chrome://mozmill-crowd/content/unpack.xul",
+                      "Extract",
+                      "dialog, modal, centerscreen, titlebar=no",
+                      aFile,
+                      aDir);
   },
 
   /**
@@ -296,10 +289,21 @@ Environment.prototype = {
 
     // If the environment hasn't been setup yet, download and install the package
     window.alert("Test Environment has to be downloaded.");
-    this.dir.create(0x01, 0755);
-    this.download();
-    this.install();
-    this.setup();
+
+    var target = this.dir.clone();
+    target.append("mozmill-env.zip");
+
+    try {
+      this.dir.create(Ci.nsILocalFile.DIRECTORY_TYPE,
+                      FileUtils.PERMS_DIRECTORY);
+
+      this.download(target);
+      this.extract(target, this.dir.clone());
+      this.setup();
+    }
+    catch (e) {
+      window.alert("Failure in setting up the test environment: " + e.message);
+    }
   },
 
   /**
@@ -325,7 +329,7 @@ Environment.prototype = {
 
       script = this.dir.clone();
       script.append("mozmill-env");
-      script.append("start.cmd");
+      script.append("run.cmd");
 
       process = Cc["@mozilla.org/process/util;1"].
                 createInstance(Ci.nsIProcess);
