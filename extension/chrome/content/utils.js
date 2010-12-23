@@ -194,7 +194,7 @@ Environment.prototype = {
    *
    */
   get isActive() {
-    return (this._process != null);
+
   },
 
   /**
@@ -215,48 +215,12 @@ Environment.prototype = {
   /**
    *
    */
-  execute: function Environment_execute(aScript, aApplication, aTestrun) {
-    var script = null;
-    var process = null;
-
-    if (aScript != "") {
-      var script = this.dir.clone();
-      script.append("mozmill-env");
-      script.append(aScript);
-    }
-    else {
-      throw new Error("No script specified.");
-    }
-
-    var testrun_script = this.dir.clone();
-    testrun_script.append("mozmill-automation");
-    testrun_script.append(aTestrun);
-
-    var repository = getPref("extensions.mozmill-crowd.repositories.mozmill-tests", "");
-
-    var args = ["python", testrun_script.path,
-                "--repository=" + repository];
-
-    /// XXX: Bit hacky at the moment
-    if (aTestrun == "testrun_addons.py") {
-      var trust_unsecure = getPref("extensions.mozmill-crowd.trust_unsecure_addons", false);
-      if (trust_unsecure)
-        args = args.concat("--with-untrusted");
-    }
-
-    // Send results to brasstack
-    var send_report = getPref("extensions.mozmill-crowd.report.send", false);
-    var report_url = getPref("extensions.mozmill-crowd.report.server", "");
-    if (send_report && report_url != "")
-      args = args.concat("--report=" + report_url);
-
-    args = args.concat(aApplication.bundle)
-
+  execute: function Environment_execute(aScript, aParams) {
     // TODO: Has to be a non-blocking process
-    process = Cc["@mozilla.org/process/util;1"].
-              createInstance(Ci.nsIProcess);
-    process.init(script);
-    process.run(true, args, args.length);
+    var process = Cc["@mozilla.org/process/util;1"].
+                  createInstance(Ci.nsIProcess);
+    process.init(aScript);
+    process.run(true, aParams, aParams.length);
   },
 
   /**
@@ -309,9 +273,49 @@ Environment.prototype = {
   /**
    *
    */
-  setup: function Environment_setup() {
-    var process = null;
+  run: function Environment_run(aScript, aApplication, aTestrun) {
+    var script = null;
 
+    if (aScript != "") {
+      var script = this.dir.clone();
+      script.append("mozmill-env");
+      script.append(aScript);
+    }
+    else {
+      throw new Error("No script specified.");
+    }
+
+    var testrun_script = this.dir.clone();
+    testrun_script.append("mozmill-automation");
+    testrun_script.append(aTestrun);
+
+    var repository = getPref("extensions.mozmill-crowd.repositories.mozmill-tests", "");
+
+    var args = ["python", testrun_script.path,
+                "--repository=" + repository];
+
+    /// XXX: Bit hacky at the moment
+    if (aTestrun == "testrun_addons.py") {
+      var trust_unsecure = getPref("extensions.mozmill-crowd.trust_unsecure_addons", false);
+      if (trust_unsecure)
+        args = args.concat("--with-untrusted");
+    }
+
+    // Send results to brasstack
+    var send_report = getPref("extensions.mozmill-crowd.report.send", false);
+    var report_url = getPref("extensions.mozmill-crowd.report.server", "");
+    if (send_report && report_url != "")
+      args = args.concat("--report=" + report_url);
+
+    args = args.concat(aApplication.bundle)
+
+    this.execute(script, args);
+  },
+
+  /**
+   *
+   */
+  setup: function Environment_setup() {
     var path = this.dir.clone();
     path.append("mozmill-automation");
 
@@ -319,11 +323,7 @@ Environment.prototype = {
       var script = this.dir.clone();
       script.append("mozmill-env");
       script.append("setup.cmd");
-
-      process = Cc["@mozilla.org/process/util;1"].
-                createInstance(Ci.nsIProcess);
-      process.init(script);
-      process.run(true, [], 0);
+      this.execute(script, [ ]);
 
       var repository = getPref("extensions.mozmill-crowd.repositories.mozmill-automation", "");
 
@@ -331,10 +331,7 @@ Environment.prototype = {
       script.append("mozmill-env");
       script.append("run.cmd");
 
-      process = Cc["@mozilla.org/process/util;1"].
-                createInstance(Ci.nsIProcess);
-      process.init(script);
-      process.run(true, ["hg", "clone", repository, path.path], 4);
+      this.execute(script, ["hg", "clone", repository, path.path]);
     }
   },
 
@@ -342,9 +339,6 @@ Environment.prototype = {
    *
    */
   stop : function Environment_stop() {
-    if (this.isActive) {
-      this._process.kill();
-    }
   }
 }
 

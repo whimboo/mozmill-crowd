@@ -150,8 +150,8 @@ var gMozmillCrowd = {
     //gMozmillCrowd._execButton.label = this._stringBundle.getString("stopTestrun.label");
 
     this._environment.prepare();
-    this._environment.execute("run.cmd",
-                              this._applications.selectedItem.value,
-                              this._testruns.selectedItem.value);
+    this._environment.run("run.cmd",
+                          this._applications.selectedItem.value,
+                          this._testruns.selectedItem.value);
   }
 };
