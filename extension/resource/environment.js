@@ -77,9 +77,15 @@ function Environment(aWindow, aDir) {
 
   this.window = aWindow;
   this._dir = aDir || this.getDefaultDir();
+
+  this._readConfigFile();
 }
 
 Environment.prototype = {
+  /**
+   *
+   */
+  _scripts : null,
 
   /**
    *
@@ -93,6 +99,19 @@ Environment.prototype = {
    */
   get isActive() {
 
+  },
+
+  /**
+   *
+   */
+  _readConfigFile : function Environment__readConfigFile() {
+    var iniFile = this.dir.clone();
+    iniFile.append("mozmill-env");
+    iniFile.append("config");
+    iniFile.append("mozmill-crowd.ini");
+
+    var contents = utils.readIniFile(iniFile);
+    this._scripts = contents.scripts;
   },
 
   /**
@@ -161,6 +180,11 @@ Environment.prototype = {
 
       this.download(target);
       this.extract(target, this.dir.clone());
+
+      // XXX: Should only be part of the constructor, once the env setup is handled
+      // outside of the Environment
+      this._readConfigFile();
+
       this.setup();
     }
     catch (e) {
@@ -171,26 +195,14 @@ Environment.prototype = {
   /**
    *
    */
-  run: function Environment_run(aScript, aApplication, aTestrun) {
-    var script = null;
-
-    if (aScript != "") {
-      var script = this.dir.clone();
-      script.append("mozmill-env");
-      script.append(aScript);
-    }
-    else {
-      throw new Error("No script specified.");
-    }
-
+  run: function Environment_run(aApplication, aTestrun) {
     var testrun_script = this.dir.clone();
     testrun_script.append("mozmill-automation");
     testrun_script.append(aTestrun);
 
     var repository = utils.getPref("extensions.mozmill-crowd.repositories.mozmill-tests", "");
 
-    var args = ["python", testrun_script.path,
-                "--repository=" + repository];
+    var args = ["python", testrun_script.path, "--repository=" + repository];
 
     /// XXX: Bit hacky at the moment
     if (aTestrun == "testrun_addons.py") {
@@ -207,6 +219,10 @@ Environment.prototype = {
 
     args = args.concat(aApplication.bundle)
 
+    var script = this.dir.clone();
+    script.append("mozmill-env");
+    script.append(this._scripts.run);
+
     this.execute(script, args);
   },
 
@@ -220,14 +236,14 @@ Environment.prototype = {
     if (!path.exists()) {
       var script = this.dir.clone();
       script.append("mozmill-env");
-      script.append("setup.cmd");
+      script.append(this._scripts.setup);
       this.execute(script, [ ]);
 
       var repository = utils.getPref("extensions.mozmill-crowd.repositories.mozmill-automation", "");
 
       script = this.dir.clone();
       script.append("mozmill-env");
-      script.append("run.cmd");
+      script.append(this._scripts.run);
 
       this.execute(script, ["hg", "clone", repository, path.path]);
     }

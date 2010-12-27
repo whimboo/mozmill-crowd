@@ -35,8 +35,9 @@
  * ***** END LICENSE BLOCK ***** */
 
 var EXPORTED_SYMBOLS = [
-  "getPref", "setPref",
-  "gAppInfo", "gDirService", "gPrefService", "gWindowWatcher"
+  "gAppInfo", "gDirService", "gPrefService", "gWindowWatcher",
+  "readIniFile",
+  "getPref", "setPref"
 ];
 
 const Cc = Components.classes;
@@ -62,9 +63,48 @@ XPCOMUtils.defineLazyServiceGetter(this, "gWindowWatcher",
                                    "@mozilla.org/embedcomp/window-watcher;1",
                                    "nsIWindowWatcher");
 
+
+/////////////////////////////
+// SECTION: File handling
+
+/**
+ * Read the specified ini file and store its data in a JSON object
+ *
+ * @param {nsIFile} aIniFile
+ *        Ini file to retrieve the content from
+ * @returns {object} Content of the ini file
+ */
+function readIniFile(aIniFile) {
+  // Parse the ini file to retrieve all values
+  var factory = Cc["@mozilla.org/xpcom/ini-processor-factory;1"].
+                getService(Ci.nsIINIParserFactory);
+  var parser = factory.createINIParser(aIniFile);
+
+  var contents = { };
+  var sectionsEnum = parser.getSections();
+  while (sectionsEnum && sectionsEnum.hasMore()) {
+    var section = sectionsEnum.getNext();
+    var keys = { };
+
+    var keysEnum = parser.getKeys(section);
+    while (keysEnum && keysEnum.hasMore()) {
+      var key = keysEnum.getNext();
+
+      keys[key] = parser.getString(section, key);
+    }
+
+    contents[section] = keys;
+  }
+
+  return contents;
+}
+
+
+/////////////////////////////
+// SECTION: Preferences
+
 // Cached instances for accessing preferences
 var gPrefBranch = gPrefService.QueryInterface(Ci.nsIPrefBranch);
-
 
 /**
  * Retrieve the value of an individual preference.

@@ -106,32 +106,12 @@ Application.prototype = {
     var iniFile = Cc["@mozilla.org/file/local;1"].
                   createInstance(Ci.nsILocalFile);
     iniFile.initWithPath(this._path);
+
+    // The path is the executable, so we have to get the directory first
     iniFile = iniFile.parent;
     iniFile.append("application.ini");
-    iniFile.isFile();
 
-    // Parse the ini file to retrieve all values
-    var factory = Cc["@mozilla.org/xpcom/ini-processor-factory;1"].
-                  getService(Ci.nsIINIParserFactory);
-    var parser = factory.createINIParser(iniFile);
-
-    var contents = { };
-    var sectionsEnum = parser.getSections();
-    while (sectionsEnum && sectionsEnum.hasMore()) {
-      var section = sectionsEnum.getNext();
-      var keys = { };
-
-      var keysEnum = parser.getKeys(section);
-      while (keysEnum && keysEnum.hasMore()) {
-        var key = keysEnum.getNext();
-
-        keys[key] = parser.getString(section, key);
-      }
-
-      contents[section] = keys;
-    }
-
-    return contents;
+    return utils.readIniFile(iniFile);
   },
 
   get path() {
