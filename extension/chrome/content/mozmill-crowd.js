@@ -38,9 +38,9 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
-var application = { }; Cu.import('resource://mozmill-crowd/application.js', application);
-var environment = { }; Cu.import('resource://mozmill-crowd/environment.js', environment);
-var utils = { }; Cu.import('resource://mozmill-crowd/utils.js', utils);
+var Application = { }; Cu.import('resource://mozmill-crowd/application.js', Application);
+var Environment = { }; Cu.import('resource://mozmill-crowd/environment.js', Environment);
+var Utils = { }; Cu.import('resource://mozmill-crowd/utils.js', Utils);
 
 const AVAILABLE_TEST_RUNS = [{
   name : "General Test-run", script: "testrun_general.py" }, {
@@ -56,7 +56,7 @@ var gMozmillCrowd = {
    * Initialize the Mozmill Crowd extension
    */
   init : function gMozmillCrowd_init() {
-    this._environment = new environment.Environment(window);
+    this._environment = new Environment.Environment(window);
 
     // Cache main ui elements
     this._applications = document.getElementById("selectApplication");
@@ -66,7 +66,7 @@ var gMozmillCrowd = {
     this._stringBundle = document.getElementById("mozmill-crowd-stringbundle");
 
     // Add the current application as default
-    this.addApplicationToList(new application.Application());
+    this.addApplicationToList(new Application.Application());
 
     // Populate the test-run drop down with allowed test-runs
     var popup = document.getElementById("selectTestrunPopup");
@@ -94,7 +94,7 @@ var gMozmillCrowd = {
     var tooltip = details.App.Name + " " + details.App.Version;
 
     var menuitem = document.createElement("menuitem");
-    menuitem.setAttribute("label", aApplication.bundle);
+    menuitem.setAttribute("label", aApplication.bundle.path);
     menuitem.setAttribute("tooltiptext", tooltip);
     menuitem.setAttribute("crop", "start");
     menuitem.value = aApplication;
@@ -108,23 +108,20 @@ var gMozmillCrowd = {
    * Browse for an application to use for the test-run.
    */
   browseForApplication : function gMozmillCrowd_browseForApplication(event) {
-    // Let the user select an application
-    var fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
+    var application = null;
 
+    var fp = Cc["@mozilla.org/filepicker;1"].
+             createInstance(Ci.nsIFilePicker);
     fp.init(window, "Select a File", Ci.nsIFilePicker.modeOpen);
     if (fp.show() == Ci.nsIFilePicker.returnOK) {
       try {
-        var file = fp.file;
-
-        // For OS X use the real application folder
-        if (gXulRuntime.OS == "Darwin") {
-          file.appendRelativePath("Contents/MacOS/" + EXECUTABLES[gXulRuntime.OS]);
-        }
-
-        this.addApplicationToList(new application.Application(file.path));
-      } catch (ex) {
+        application = new Application.Application(fp.file);
+        this.addApplicationToList(application);
+      }
+      catch (e) {
         window.alert(this._stringBundle.getFormattedString("exception.invalid_application",
-                                        [mcuGetAppBundle(file.path)]));
+                                                           [app.bundle.path]) +
+                     " (" + e.message + ")");
       }
     }
   },
@@ -140,7 +137,7 @@ var gMozmillCrowd = {
    * Opens the preferences dialog
    */
   openPreferences : function gMozmillCrowd_openPreferences(event) {
-    utils.gWindowWatcher.openWindow(null,
+    Utils.gWindowWatcher.openWindow(null,
                                     "chrome://mozmill-crowd/content/preferences.xul",
                                     "",
                                     "chrome,dialog,modal",

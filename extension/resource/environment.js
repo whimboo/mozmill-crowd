@@ -44,7 +44,7 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/FileUtils.jsm");
 
-var utils = { }; Cu.import('resource://mozmill-crowd/utils.js', utils);
+var Utils = { }; Cu.import('resource://mozmill-crowd/utils.js', Utils);
 
 
 // XXX: Can be removed once the download of the environment is handled
@@ -73,7 +73,7 @@ const FOLDER_NAME = "crowd";
  * XXX: remove window parameter once preparation is handled outside
  */
 function Environment(aWindow, aDir) {
-  this._dirSrv = utils.gDirService;
+  this._dirSrv = Utils.gDirService;
 
   this.window = aWindow;
   this._dir = aDir || this.getDefaultDir();
@@ -110,7 +110,7 @@ Environment.prototype = {
     iniFile.append("config");
     iniFile.append("mozmill-crowd.ini");
 
-    var contents = utils.readIniFile(iniFile);
+    var contents = Utils.readIniFile(iniFile);
     this._scripts = contents.scripts;
   },
 
@@ -200,24 +200,25 @@ Environment.prototype = {
     testrun_script.append("mozmill-automation");
     testrun_script.append(aTestrun);
 
-    var repository = utils.getPref("extensions.mozmill-crowd.repositories.mozmill-tests", "");
+    var repository = Utils.getPref("extensions.mozmill-crowd.repositories.mozmill-tests", "");
 
     var args = ["python", testrun_script.path, "--repository=" + repository];
 
     /// XXX: Bit hacky at the moment
     if (aTestrun == "testrun_addons.py") {
-      var trust_unsecure = utils.getPref("extensions.mozmill-crowd.trust_unsecure_addons", false);
+      var trust_unsecure = Utils.getPref("extensions.mozmill-crowd.trust_unsecure_addons", false);
       if (trust_unsecure)
         args = args.concat("--with-untrusted");
     }
 
     // Send results to brasstack
-    var send_report = utils.getPref("extensions.mozmill-crowd.report.send", false);
-    var report_url = utils.getPref("extensions.mozmill-crowd.report.server", "");
+    var send_report = Utils.getPref("extensions.mozmill-crowd.report.send", false);
+    var report_url = Utils.getPref("extensions.mozmill-crowd.report.server", "");
     if (send_report && report_url != "")
       args = args.concat("--report=" + report_url);
 
-    args = args.concat(aApplication.bundle)
+    // XXX: The automation scripts don't support the binary yet
+    args = args.concat(aApplication.bundle.path)
 
     var script = this.dir.clone();
     script.append("mozmill-env");
@@ -239,7 +240,7 @@ Environment.prototype = {
       script.append(this._scripts.setup);
       this.execute(script, [ ]);
 
-      var repository = utils.getPref("extensions.mozmill-crowd.repositories.mozmill-automation", "");
+      var repository = Utils.getPref("extensions.mozmill-crowd.repositories.mozmill-automation", "");
 
       script = this.dir.clone();
       script.append("mozmill-env");

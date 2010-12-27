@@ -42,24 +42,31 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
-var utils = { }; Cu.import('resource://mozmill-crowd/utils.js', utils);
+var Utils = { }; Cu.import('resource://mozmill-crowd/utils.js', Utils);
+
+
+const BINARIES = {
+  "Darwin" : "firefox-bin",
+  "Linux" : "firefox-bin",
+  "WINNT" : "firefox.exe"
+};
 
 
 /**
  *
  */
 function Application(aPath) {
-  this._appInfo = utils.gAppInfo;
-  this._dirSrv = utils.gDirService;
+  this._appInfo = Utils.gAppInfo;
+  this._dirSrv = Utils.gDirService;
 
-  this._path = aPath || this.currentAppPath();
+  // On OS X we need the real executable binary
+  if (aPath && aPath.isDirectory() &&
+      this.XULRuntime.OS == "Darwin") {
+    aPath.appendRelativePath("Contents/MacOS/" + BINARIES[this.XULRuntime.OS]);
+  }
+
+  this._binary = aPath || this.currentAppBinary();
 }
-
-Application.binaries = {
-  "Darwin" : "firefox-bin",
-  "Linux" : "firefox-bin",
-  "WINNT" : "firefox.exe"
-};
 
 Application.prototype = {
 
@@ -87,9 +94,14 @@ Application.prototype = {
    */
   get bundle() {
     if (this.XULRuntime.OS == "Darwin") {
-      return /(.*\.app).*/.exec(this._path)[1];
+      var bundle = Cc["@mozilla.org/file/local;1"].
+                   createInstance(Ci.nsILocalFile);
+      var path = /(.*\.app).*/.exec(this.binary.path)[1];
+      bundle.initWithPath(path);
+
+      return bundle;
     } else {
-      return this._path;
+      return this.binary;
     }
   },
 
@@ -103,30 +115,26 @@ Application.prototype = {
    */
   get details() {
     // Get a reference to the application.ini file
-    var iniFile = Cc["@mozilla.org/file/local;1"].
-                  createInstance(Ci.nsILocalFile);
-    iniFile.initWithPath(this._path);
-
-    // The path is the executable, so we have to get the directory first
+    var iniFile = this.binary.clone();
     iniFile = iniFile.parent;
     iniFile.append("application.ini");
 
-    return utils.readIniFile(iniFile);
+    return Utils.readIniFile(iniFile);
   },
 
-  get path() {
-    return this._path;
+  get binary() {
+    return this._binary;
   },
 
   /**
-   * Get the path of the currently running application
+   * Get the binary of the currently running application
    *
    * @returns Path of the application
    */
-  currentAppPath: function Application_currentAppPath() {
-    var dir = this._dirSrv.get("CurProcD", Ci.nsIFile);
-    dir.append(Application.binaries[this.XULRuntime.OS]);
+  currentAppBinary: function Application_currentAppBinary() {
+    var binary = this._dirSrv.get("CurProcD", Ci.nsIFile);
+    binary.append(BINARIES[this.XULRuntime.OS]);
 
-    return dir.path;
+    return binary;
   }
 }
