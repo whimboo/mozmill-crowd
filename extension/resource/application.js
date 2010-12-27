@@ -34,20 +34,23 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-// XXX: temporary until refactoring has been finished
-var Cc = Components.classes;
-var Ci = Components.interfaces;
+var EXPORTED_SYMBOLS = [
+  "Application"
+];
 
-var EXPORTED_SYMBOLS = ["Application"];
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cu = Components.utils;
+
+var utils = { }; Cu.import('resource://mozmill-crowd/utils.js', utils);
+
 
 /**
  *
  */
 function Application(aPath) {
-  this._appInfo = Cc["@mozilla.org/xre/app-info;1"].
-                  getService(Ci.nsIXULAppInfo);
-  this._dirSrv = Cc["@mozilla.org/file/directory_service;1"].
-                 getService(Ci.nsIProperties);
+  this._appInfo = utils.gAppInfo;
+  this._dirSrv = utils.gDirService;
 
   this._path = aPath || this.currentAppPath();
 }

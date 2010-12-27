@@ -34,8 +34,19 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-var application = { };
-Cu.import('resource://mozmill-crowd/application.js', application);
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cu = Components.utils;
+
+var application = { }; Cu.import('resource://mozmill-crowd/application.js', application);
+var environment = { }; Cu.import('resource://mozmill-crowd/environment.js', environment);
+var utils = { }; Cu.import('resource://mozmill-crowd/utils.js', utils);
+
+const AVAILABLE_TEST_RUNS = [{
+  name : "General Test-run", script: "testrun_general.py" }, {
+  name : "Add-ons Test-run", script: "testrun_addons.py" }
+];
+
 
 /**
  *
@@ -45,7 +56,7 @@ var gMozmillCrowd = {
    * Initialize the Mozmill Crowd extension
    */
   init : function gMozmillCrowd_init() {
-    this._environment = new Environment();
+    this._environment = new environment.Environment(window);
 
     // Cache main ui elements
     this._applications = document.getElementById("selectApplication");
@@ -129,11 +140,11 @@ var gMozmillCrowd = {
    * Opens the preferences dialog
    */
   openPreferences : function gMozmillCrowd_openPreferences(event) {
-    var windowWatcher = Cc["@mozilla.org/embedcomp/window-watcher;1"].
-                        getService(Ci.nsIWindowWatcher);
-
-    windowWatcher.openWindow(null, "chrome://mozmill-crowd/content/preferences.xul",
-                             "", "chrome,dialog,modal", null);
+    utils.gWindowWatcher.openWindow(null,
+                                    "chrome://mozmill-crowd/content/preferences.xul",
+                                    "",
+                                    "chrome,dialog,modal",
+                                    null);
   },
 
   startTestrun : function gMozmillCrowd_startTestrun(event) {

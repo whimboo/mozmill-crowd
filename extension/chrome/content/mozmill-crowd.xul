@@ -43,7 +43,6 @@
         windowtype="MozMill:Crowd"
         onload="gMozmillCrowd.init();">
 
-  <script type="application/x-javascript" src="chrome://mozmill-crowd/content/utils.js"/>
   <script type="application/x-javascript" src="chrome://mozmill-crowd/content/mozmill-crowd.js"/>
 
   <broadcasterset id="mozmill-crowd-broadcasterset">
