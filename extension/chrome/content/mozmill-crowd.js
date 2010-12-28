@@ -39,7 +39,7 @@ const Ci = Components.interfaces;
 const Cu = Components.utils;
 
 var Application = { }; Cu.import('resource://mozmill-crowd/application.js', Application);
-var Environment = { }; Cu.import('resource://mozmill-crowd/environment.js', Environment);
+var Storage = { }; Cu.import('resource://mozmill-crowd/storage.js', Storage);
 var Utils = { }; Cu.import('resource://mozmill-crowd/utils.js', Utils);
 
 const AVAILABLE_TEST_RUNS = [{
@@ -56,8 +56,6 @@ var gMozmillCrowd = {
    * Initialize the Mozmill Crowd extension
    */
   init : function gMozmillCrowd_init() {
-    this._environment = new Environment.Environment(window);
-
     // Cache main ui elements
     this._applications = document.getElementById("selectApplication");
     this._testruns = document.getElementById("selectTestrun");
@@ -144,27 +142,54 @@ var gMozmillCrowd = {
                                     null);
   },
 
-  startTestrun : function gMozmillCrowd_startTestrun(event) {
-    if (this._environment.active) {
-      this._environment.stop();
+  checkAndSetup : function gMozmillCrowd_checkAndSetup() {
+    var dirSrv = Utils.gDirService;
+    var dir = dirSrv.get("ProfD", Ci.nsIFile);
+    dir.append("crowd");
 
-      //gMozmillCrowd._applications.disabled = false;
-      //gMozmillCrowd._testruns.disabled = false;
-      //gMozmillCrowd._execButton.label = this._stringBundle.getString("startTestrun.label");
+    this._storage = new Storage.Storage(dir);
 
-      return;
+    var path = this._storage.dir.clone();
+    path.append("mozmill-automation");
+
+    if (!path.exists()) {
+      var repository = Utils.getPref("extensions.mozmill-crowd.repositories.mozmill-automation", "");
+      this._storage.environment.run(["hg", "clone", repository, path.path]);
     }
+  },
+
+  startTestrun : function gMozmillCrowd_startTestrun(event) {
+    this.checkAndSetup();
 
     while (gMozmillCrowd._output.getRowCount() != 0) {
       gMozmillCrowd._output.removeItemAt(0);
     }
 
-    //gMozmillCrowd._applications.disabled = true;
-    //gMozmillCrowd._testruns.disabled = true;
-    //gMozmillCrowd._execButton.label = this._stringBundle.getString("stopTestrun.label");
+    var testrun = this._testruns.selectedItem.value;
+    var script = this._storage.dir.clone();
+    script.append("mozmill-automation");
+    script.append(testrun);
 
-    this._environment.prepare();
-    this._environment.run(this._applications.selectedItem.value,
-                          this._testruns.selectedItem.value);
+    var repository = Utils.getPref("extensions.mozmill-crowd.repositories.mozmill-tests", "");
+
+    var args = ["python", script.path, "--repository=" + repository];
+
+    // XXX: Bit hacky at the moment
+    if (testrun == "testrun_addons.py") {
+      var trust_unsecure = Utils.getPref("extensions.mozmill-crowd.trust_unsecure_addons", false);
+      if (trust_unsecure)
+        args = args.concat("--with-untrusted");
+    }
+
+    // Send results to brasstack
+    var send_report = Utils.getPref("extensions.mozmill-crowd.report.send", false);
+    var report_url = Utils.getPref("extensions.mozmill-crowd.report.server", "");
+    if (send_report && report_url != "")
+      args = args.concat("--report=" + report_url);
+
+    // XXX: The automation scripts don't support the binary yet
+    args = args.concat(this._applications.selectedItem.value.bundle.path);
+
+    this._storage.environment.run(args);
   }
 };

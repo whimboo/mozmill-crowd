@@ -35,7 +35,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 var EXPORTED_SYMBOLS = [
-  "gAppInfo", "gDirService", "gPrefService", "gWindowWatcher",
+  "gAppInfo", "gDirService", "gPrefService", "gWindowMediator", "gWindowWatcher",
   "readIniFile",
   "getPref", "setPref"
 ];
@@ -58,6 +58,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "gDirService",
 XPCOMUtils.defineLazyServiceGetter(this, "gPrefService",
                                    "@mozilla.org/preferences-service;1",
                                    "nsIPrefService");
+
+XPCOMUtils.defineLazyServiceGetter(this, "gWindowMediator",
+                                   "@mozilla.org/appshell/window-mediator;1",
+                                   "nsIWindowMediator");
 
 XPCOMUtils.defineLazyServiceGetter(this, "gWindowWatcher",
                                    "@mozilla.org/embedcomp/window-watcher;1",

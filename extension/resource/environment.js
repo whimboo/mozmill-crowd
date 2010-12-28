@@ -47,37 +47,11 @@ Cu.import("resource://gre/modules/FileUtils.jsm");
 var Utils = { }; Cu.import('resource://mozmill-crowd/utils.js', Utils);
 
 
-// XXX: Can be removed once the download of the environment is handled
-// outside of the Environment class
-var gAppInfo = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo);
-var gXulRuntime = gAppInfo.QueryInterface(Ci.nsIXULRuntime);
-
-// XXX: For now lets use constants. Has to be moved out to a web service which
-// will return the latest package and the hash
-const ENVIRONMENT_DATA = {
-  Darwin : {
-    url : "http://people.mozilla.com/~hskupin/mozmill-crowd/mozmill-mac.zip"
-  },
-  Linux : {
-    url : "http://people.mozilla.com/~hskupin/mozmill-crowd/mozmill-linux.zip"
-  },
-  WINNT : {
-    url : "http://people.mozilla.com/~hskupin/mozmill-crowd/mozmill-windows.zip"
-  }
-};
-
-// XXX: Has to be handled outside of the environment module
-const FOLDER_NAME = "crowd";
-
 /**
- * XXX: remove window parameter once preparation is handled outside
+ *
  */
-function Environment(aWindow, aDir) {
-  this._dirSrv = Utils.gDirService;
-
-  this.window = aWindow;
-  this._dir = aDir || this.getDefaultDir();
-
+function Environment(aDir) {
+  this._dir = aDir;
   this._readConfigFile();
 }
 
@@ -104,35 +78,7 @@ Environment.prototype = {
   /**
    *
    */
-  _readConfigFile : function Environment__readConfigFile() {
-    var iniFile = this.dir.clone();
-    iniFile.append("mozmill-env");
-    iniFile.append("config");
-    iniFile.append("mozmill-crowd.ini");
-
-    var contents = Utils.readIniFile(iniFile);
-    this._scripts = contents.scripts;
-  },
-
-  /**
-   *
-   */
-  download : function Environment_download() {
-    var target = this.dir.clone();
-    target.append("mozmill-env.zip");
-
-    this.window.openDialog("chrome://mozmill-crowd/content/download.xul",
-                           "Download",
-                           "dialog, modal, centerscreen, titlebar=no",
-                           ENVIRONMENT_DATA[gXulRuntime.OS].url,
-                           target);
-    this.extract(target, this.dir.clone());
-  },
-
-  /**
-   *
-   */
-  execute: function Environment_execute(aScript, aParams) {
+  _execute: function Environment__execute(aScript, aParams) {
     // TODO: Has to be a non-blocking process
     var process = Cc["@mozilla.org/process/util;1"].
                   createInstance(Ci.nsIProcess);
@@ -143,111 +89,34 @@ Environment.prototype = {
   /**
    *
    */
-  getDefaultDir: function Environment_getDefaultDir() {
-    var dir = this._dirSrv.get("ProfD", Ci.nsIFile);
-    dir.append(FOLDER_NAME);
+  _readConfigFile : function Environment__readConfigFile() {
+    var iniFile = this.dir.clone();
+    iniFile.append("config");
+    iniFile.append("mozmill-crowd.ini");
 
-    return dir;
+    var contents = Utils.readIniFile(iniFile);
+    this._scripts = contents.scripts;
   },
 
   /**
-   *
+   * Runs the specified command with the given parameters
    */
-  extract : function Environment_extract(aFile, aDir) {
-    this.window.openDialog("chrome://mozmill-crowd/content/unpack.xul",
-                           "Extract",
-                           "dialog, modal, centerscreen, titlebar=no",
-                           aFile,
-                           aDir);
-  },
-
-  /**
-   *
-   */
-  prepare: function Environment_prepare() {
-    if (this.dir.exists())
-      return;
-
-    // If the environment hasn't been setup yet, download and install the package
-    this.window.alert("Test Environment has to be downloaded.");
-
-    var target = this.dir.clone();
-    target.append("mozmill-env.zip");
-
-    try {
-      this.dir.create(Ci.nsILocalFile.DIRECTORY_TYPE,
-                      FileUtils.PERMS_DIRECTORY);
-
-      this.download(target);
-      this.extract(target, this.dir.clone());
-
-      // XXX: Should only be part of the constructor, once the env setup is handled
-      // outside of the Environment
-      this._readConfigFile();
-
-      this.setup();
-    }
-    catch (e) {
-      this.window.alert("Failure in setting up the test environment: " + e.message);
-    }
-  },
-
-  /**
-   *
-   */
-  run: function Environment_run(aApplication, aTestrun) {
-    var testrun_script = this.dir.clone();
-    testrun_script.append("mozmill-automation");
-    testrun_script.append(aTestrun);
-
-    var repository = Utils.getPref("extensions.mozmill-crowd.repositories.mozmill-tests", "");
-
-    var args = ["python", testrun_script.path, "--repository=" + repository];
-
-    /// XXX: Bit hacky at the moment
-    if (aTestrun == "testrun_addons.py") {
-      var trust_unsecure = Utils.getPref("extensions.mozmill-crowd.trust_unsecure_addons", false);
-      if (trust_unsecure)
-        args = args.concat("--with-untrusted");
-    }
-
-    // Send results to brasstack
-    var send_report = Utils.getPref("extensions.mozmill-crowd.report.send", false);
-    var report_url = Utils.getPref("extensions.mozmill-crowd.report.server", "");
-    if (send_report && report_url != "")
-      args = args.concat("--report=" + report_url);
-
-    // XXX: The automation scripts don't support the binary yet
-    args = args.concat(aApplication.bundle.path)
-
+  run: function Environment_run(aParams) {
     var script = this.dir.clone();
-    script.append("mozmill-env");
     script.append(this._scripts.run);
 
-    this.execute(script, args);
+    this._execute(script, aParams);
   },
 
   /**
-   *
+   * Runs the setup routine of the test environment. It has to be called
+   * when the folder gets moved or updates for tools have to be installed
    */
   setup: function Environment_setup() {
-    var path = this.dir.clone();
-    path.append("mozmill-automation");
+    var script = this.dir.clone();
+    script.append(this._scripts.setup);
 
-    if (!path.exists()) {
-      var script = this.dir.clone();
-      script.append("mozmill-env");
-      script.append(this._scripts.setup);
-      this.execute(script, [ ]);
-
-      var repository = Utils.getPref("extensions.mozmill-crowd.repositories.mozmill-automation", "");
-
-      script = this.dir.clone();
-      script.append("mozmill-env");
-      script.append(this._scripts.run);
-
-      this.execute(script, ["hg", "clone", repository, path.path]);
-    }
+    this._execute(script, [ ]);
   },
 
   /**
