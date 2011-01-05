@@ -44,6 +44,7 @@ var Utils = { }; Cu.import('resource://mozmill-crowd/utils.js', Utils);
 
 const AVAILABLE_TEST_RUNS = [{
   name : "General Test-run", script: "testrun_general.py" }, {
+  name : "L10n Test-run", script: "testrun_l10n.py" }, {
   name : "Add-ons Test-run", script: "testrun_addons.py" }
 ];
 
