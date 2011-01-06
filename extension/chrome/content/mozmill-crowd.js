@@ -118,10 +118,23 @@ var gMozmillCrowd = {
         this.addApplicationToList(application);
       }
       catch (e) {
-        window.alert(this._stringBundle.getFormattedString("exception.invalid_application",
+        window.alert(this._stringBundle.getFormattedString("application.invalid",
                                                            [app.bundle.path]) +
                      " (" + e.message + ")");
       }
+    }
+  },
+
+  checkAndSetup : function gMozmillCrowd_checkAndSetup() {
+    var dir = this.getStorageLocation();
+    this._storage = new Storage.Storage(dir);
+
+    var path = this._storage.dir.clone();
+    path.append("mozmill-automation");
+
+    if (!path.exists()) {
+      var repository = Utils.getPref("extensions.mozmill-crowd.repositories.mozmill-automation", "");
+      this._storage.environment.run(["hg", "clone", repository, path.path]);
     }
   },
 
@@ -130,6 +143,46 @@ var gMozmillCrowd = {
    */
   closeDialog : function gMozmillCrowd_closeDialog() {
     return true;
+  },
+
+  /**
+   *
+   */
+  getStorageLocation : function gMozmillCrowd_getStorageLocation() {
+    // Get the location of the storage folder
+    var dir = Utils.getPref("extensions.mozmill-crowd.storage", null, false,
+                            Ci.nsILocalFile);
+
+    // If the preference hasn't been set yet, the user has to select a folder
+    // Note: We do not allow spaces in the path due to issues with virtualenv
+    //       (See https://bugzilla.mozilla.org/show_bug.cgi?id=623224)
+    if (!dir) {
+      window.alert(this._stringBundle.getString("storage.path_not_found"));
+    } else if (dir.path.search(/ /) != -1) {
+      window.alert(this._stringBundle.getString("storage.path_has_space"));
+    }
+
+    if (!dir || (dir.path.search(/ /) != -1)) {
+      var fp = Cc["@mozilla.org/filepicker;1"].
+               createInstance(Ci.nsIFilePicker);
+      fp.init(window, "Select a Folder", Ci.nsIFilePicker.modeGetFolder);
+
+      do {
+        if (fp.show() !== Ci.nsIFilePicker.returnOK) {
+          throw new Error(this._stringBundle.getString("execution.user_abort"));
+        }
+
+        var containsSpace = fp.file.path.search(/ /) != -1;
+        if (containsSpace) {
+          window.alert(this._stringBundle.getString("storage.path_has_space"));
+        }
+      } while (containsSpace);
+
+      Utils.setPref("extensions.mozmill-crowd.storage", fp.file, Ci.nsILocalFile);
+      return fp.file;
+    } else {
+      return dir;
+    }
   },
 
   /**
@@ -143,54 +196,43 @@ var gMozmillCrowd = {
                                     null);
   },
 
-  checkAndSetup : function gMozmillCrowd_checkAndSetup() {
-    var dirSrv = Utils.gDirService;
-    var dir = dirSrv.get("ProfD", Ci.nsIFile);
-    dir.append("crowd");
-
-    this._storage = new Storage.Storage(dir);
-
-    var path = this._storage.dir.clone();
-    path.append("mozmill-automation");
-
-    if (!path.exists()) {
-      var repository = Utils.getPref("extensions.mozmill-crowd.repositories.mozmill-automation", "");
-      this._storage.environment.run(["hg", "clone", repository, path.path]);
-    }
-  },
-
   startTestrun : function gMozmillCrowd_startTestrun(event) {
-    this.checkAndSetup();
+    try {
+      this.checkAndSetup();
 
-    while (gMozmillCrowd._output.getRowCount() != 0) {
-      gMozmillCrowd._output.removeItemAt(0);
+      while (gMozmillCrowd._output.getRowCount() != 0) {
+        gMozmillCrowd._output.removeItemAt(0);
+      }
+
+      var testrun = this._testruns.selectedItem.value;
+      var script = this._storage.dir.clone();
+      script.append("mozmill-automation");
+      script.append(testrun);
+
+      var repository = Utils.getPref("extensions.mozmill-crowd.repositories.mozmill-tests", "");
+
+      var args = ["python", script.path, "--repository=" + repository];
+
+      // XXX: Bit hacky at the moment
+      if (testrun == "testrun_addons.py") {
+        var trust_unsecure = Utils.getPref("extensions.mozmill-crowd.trust_unsecure_addons", false);
+        if (trust_unsecure)
+          args = args.concat("--with-untrusted");
+      }
+
+      // Send results to brasstack
+      var send_report = Utils.getPref("extensions.mozmill-crowd.report.send", false);
+      var report_url = Utils.getPref("extensions.mozmill-crowd.report.server", "");
+      if (send_report && report_url != "")
+        args = args.concat("--report=" + report_url);
+
+      // XXX: The automation scripts don't support the binary yet
+      args = args.concat(this._applications.selectedItem.value.bundle.path);
+
+      this._storage.environment.run(args);
     }
-
-    var testrun = this._testruns.selectedItem.value;
-    var script = this._storage.dir.clone();
-    script.append("mozmill-automation");
-    script.append(testrun);
-
-    var repository = Utils.getPref("extensions.mozmill-crowd.repositories.mozmill-tests", "");
-
-    var args = ["python", script.path, "--repository=" + repository];
-
-    // XXX: Bit hacky at the moment
-    if (testrun == "testrun_addons.py") {
-      var trust_unsecure = Utils.getPref("extensions.mozmill-crowd.trust_unsecure_addons", false);
-      if (trust_unsecure)
-        args = args.concat("--with-untrusted");
+    catch (e) {
+      window.alert(e.message);
     }
-
-    // Send results to brasstack
-    var send_report = Utils.getPref("extensions.mozmill-crowd.report.send", false);
-    var report_url = Utils.getPref("extensions.mozmill-crowd.report.server", "");
-    if (send_report && report_url != "")
-      args = args.concat("--report=" + report_url);
-
-    // XXX: The automation scripts don't support the binary yet
-    args = args.concat(this._applications.selectedItem.value.bundle.path);
-
-    this._storage.environment.run(args);
   }
 };
