@@ -227,7 +227,15 @@ var gMozmillCrowd = {
   },
 
   startTestrun : function gMozmillCrowd_startTestrun(event) {
+    var chromeTimeoutPref = 'dom.max_chrome_script_run_time';
+    var chromeTimeoutValue = 20;
+
     try {
+      // Disable the slow script warning for chrome scripts
+      // XXX: Can be removed when we have non-blocking process calls
+      chromeTimeoutValue = Utils.getPref(chromeTimeoutPref, chromeTimeoutValue);
+      Utils.setPref(chromeTimeoutPref, -1);
+
       this.checkAndSetup();
 
       var testrun = this._testruns.selectedItem.value;
@@ -268,6 +276,10 @@ var gMozmillCrowd = {
     }
     catch (e) {
       window.alert(e.message);
+    }
+    finally {
+      // Restore the original timeout for chrome scripts
+      Utils.setPref(chromeTimeoutPref, chromeTimeoutValue);
     }
   }
 };
