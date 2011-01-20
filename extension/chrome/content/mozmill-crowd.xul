@@ -119,6 +119,7 @@
   <label value="&testrunResults.label;"
          accesskey="&testrunResults.accesskey;"
          control="testrunResults"/>
-  <listbox id="testrunResults" flex="1"/>
+  <textbox id="testrunResults" flex="1"
+           multiline="true" readonly="true" />
 
 </dialog>

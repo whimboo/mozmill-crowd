@@ -189,6 +189,33 @@ var gMozmillCrowd = {
   },
 
   /**
+   *
+   */
+  loadLogFile : function gMozmillCrowd_loadLogFile(aLogFile) {
+    try {
+      var fstream = Cc["@mozilla.org/network/file-input-stream;1"].
+                    createInstance(Ci.nsIFileInputStream);
+      var cstream = Cc["@mozilla.org/intl/converter-input-stream;1"].
+                    createInstance(Ci.nsIConverterInputStream);
+      fstream.init(aLogFile, -1, 0, 0);
+      cstream.init(fstream, "UTF-8", 0, 0);
+
+      gMozmillCrowd._output.value = "";
+      var read = 0;
+      var str = { };
+      do {
+        read = cstream.readString(0xffffffff, str);
+        gMozmillCrowd._output.value += str.value;
+      } while (read != 0);
+
+      cstream.close();
+    }
+    catch (e) {
+      window.alert(e.message);
+    }
+  },
+
+  /**
    * Opens the preferences dialog
    */
   openPreferences : function gMozmillCrowd_openPreferences(event) {
@@ -203,10 +230,6 @@ var gMozmillCrowd = {
     try {
       this.checkAndSetup();
 
-      while (gMozmillCrowd._output.getRowCount() != 0) {
-        gMozmillCrowd._output.removeItemAt(0);
-      }
-
       var testrun = this._testruns.selectedItem.value;
       var script = this._storage.dir.clone();
       script.append("mozmill-automation");
@@ -214,7 +237,14 @@ var gMozmillCrowd = {
 
       var repository = Utils.getPref("extensions.mozmill-crowd.repositories.mozmill-tests", "");
 
-      var args = ["python", script.path, "--repository=" + repository,
+      // Create a log which can be shown in the output window after the test-run
+      // has been completed
+      var logfile = this._storage.dir.clone();
+      logfile.append("testrun.log");
+
+      var args = ["python", script.path,
+                  "--repository=" + repository,
+                  "--logfile=" + logfile.path,
                   "--screenshot-path=" + this._storage.screenshotPath.path];
 
       // XXX: Bit hacky at the moment
@@ -234,6 +264,7 @@ var gMozmillCrowd = {
       args = args.concat(this._applications.selectedItem.value.bundle.path);
 
       this._storage.environment.run(args);
+      this.loadLogFile(logfile);
     }
     catch (e) {
       window.alert(e.message);
