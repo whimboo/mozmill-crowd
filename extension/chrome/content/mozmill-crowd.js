@@ -132,11 +132,14 @@ var gMozmillCrowd = {
     var path = this._storage.dir.clone();
     path.append("mozmill-automation");
 
-    if (!path.exists()) {
-      var repository = Utils.getPref("extensions.mozmill-crowd.repositories.mozmill-automation", "");
-      this._storage.environment.run(["hg", "clone", repository, path.path]);
-    }
-  },
+    // Until we have a reliable way to pull from the repository we will clone
+    // it again for now.
+    if (path.exists())
+      path.remove(true);
+
+    var repository = Utils.getPref("extensions.mozmill-crowd.repositories.mozmill-automation", "");
+    this._storage.environment.run(["hg", "clone", repository, path.path]);
+ },
 
   /**
    * XXX: Stop a test-run before closing the dialog
