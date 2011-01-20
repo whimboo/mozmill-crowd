@@ -211,7 +211,8 @@ var gMozmillCrowd = {
 
       var repository = Utils.getPref("extensions.mozmill-crowd.repositories.mozmill-tests", "");
 
-      var args = ["python", script.path, "--repository=" + repository];
+      var args = ["python", script.path, "--repository=" + repository,
+                  "--screenshot-path=" + this._storage.screenshotPath.path];
 
       // XXX: Bit hacky at the moment
       if (testrun == "testrun_addons.py") {

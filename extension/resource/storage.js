@@ -122,6 +122,16 @@ Storage.prototype = {
   /**
    *
    */
+  get screenshotPath() {
+    var path = this.dir.clone();
+    path.append("screenshots");
+
+    return path;
+  },
+
+  /**
+   *
+   */
   _createEnvironment : function Storage__createEnvironment() {
     var envDir = this.dir.clone();
     envDir.append(ENVIRONMENT_DIR);
