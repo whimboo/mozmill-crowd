@@ -42,10 +42,9 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
+// Import global JS modules
 Cu.import("resource://gre/modules/FileUtils.jsm");
-
-var Environment = { }; Cu.import('resource://mozmill-crowd/environment.js', Environment);
-var Utils = { }; Cu.import('resource://mozmill-crowd/utils.js', Utils);
+Cu.import("resource://gre/modules/Services.jsm");
 
 
 // XXX: For now lets use constants. Has to be moved out to a web service which
@@ -62,12 +61,20 @@ const ENVIRONMENT_DATA = {
   }
 };
 
-// XXX: Has to be removed once we use the PHP script to download the environment
-var gXulRuntime = Utils.gAppInfo.QueryInterface(Ci.nsIXULRuntime);
-
-
-const ENVIRONMENT_DIR = "mozmill-env";
 const ENVIRONMENT_PACKAGE = "mozmill-env.zip";
+
+// States of the storage folder
+const STATUS_NOT_INITIALIZED = "not initialized";
+const STATUS_ENV_DOWNLOAD = "download";
+const STATUS_ENV_SETUP = "setup";
+const STATUS_READY = "ready";
+
+const STORAGE_STATES = [
+  STATUS_NOT_INITIALIZED,
+  STATUS_ENV_DOWNLOAD,
+  STATUS_ENV_SETUP,
+  STATUS_READY
+];
 
 
 /**
@@ -76,11 +83,14 @@ const ENVIRONMENT_PACKAGE = "mozmill-env.zip";
  *        Directory, which is used to store all extension related files
  */
 function Storage(aDir) {
-  this._dirSrv = Utils.gDirService;
-
+  // Check if the storage exists, otherwise create it
   this._dir = aDir;
+  if (!this.dir.exists) {
+    this.dir.create(Ci.nsILocalFile.DIRECTORY_TYPE,
+                    FileUtils.PERMS_DIRECTORY);
+  }
 
-  this.setup();
+  this.readStatusFile();
 }
 
 Storage.prototype = {
@@ -93,7 +103,7 @@ Storage.prototype = {
   /**
    *
    */
-  _environment : null,
+  _status : null,
 
   /**
    *
@@ -105,18 +115,18 @@ Storage.prototype = {
   /**
    *
    */
-  get exists() {
-    return this.dir.exists();
+  get environmentPath() {
+    var dir = this.dir.clone();
+    dir.append("mozmill-env");
+
+    return dir;
   },
 
   /**
    *
    */
-  get environment() {
-    if (!this._environment)
-      this._createEnvironment();
-
-    return this._environment;
+  get exists() {
+    return this.dir.exists();
   },
 
   /**
@@ -132,67 +142,66 @@ Storage.prototype = {
   /**
    *
    */
-  _createEnvironment : function Storage__createEnvironment() {
-    var envDir = this.dir.clone();
-    envDir.append(ENVIRONMENT_DIR);
-
-    this._environment = new Environment.Environment(envDir);
+  get status() {
+    return this._status;
   },
 
   /**
    *
    */
-  download : function Storage_download(aURL, aFile) {
-    var window = Utils.gWindowMediator.getMostRecentWindow("MozMill:Crowd");
-    window.openDialog("chrome://mozmill-crowd/content/download.xul",
-                      "Download",
-                      "dialog, modal, centerscreen, titlebar=no",
-                      aURL,
-                      aFile);
-  },
-
-  /**
-   *
-   */
-  extract : function Storage_extract(aFile, aDir) {
-    var window = Utils.gWindowMediator.getMostRecentWindow("MozMill:Crowd");
-    window.openDialog("chrome://mozmill-crowd/content/unpack.xul",
-                      "Extract",
-                      "dialog, modal, centerscreen, titlebar=no",
-                      aFile,
-                      aDir);
-  },
-
-  /**
-   *
-   */
-  setup : function Storage_setup() {
-    // Check if the storage exists, otherwise create it
-    if (!this.dir.exists) {
-      this.dir.create(Ci.nsILocalFile.DIRECTORY_TYPE,
-                      FileUtils.PERMS_DIRECTORY);
-    }
-
-    // For now lets only check for the downloaded test environment. In the
-    // future we will have to store the version of the environment to be able
-    // to check for updates and install those.
+  downloadEnvironment : function Storage_downloadEnvironment() {
     var envPackage = this.dir.clone();
     envPackage.append(ENVIRONMENT_PACKAGE);
 
-    if (!envPackage.exists()) {
-      this.download(ENVIRONMENT_DATA[gXulRuntime.OS].url, envPackage);
+    var window = Services.wm.getMostRecentWindow("MozMill:Crowd");
+    window.openDialog("chrome://mozmill-crowd/content/download.xul",
+                      "Download",
+                      "dialog, modal, centerscreen, titlebar=no",
+                      ENVIRONMENT_DATA[Services.appinfo.OS].url,
+                      envPackage);
+  },
+
+  /**
+   *
+   */
+  extractEnvironment : function Storage_extractEnvironment() {
+    var envPackage = this.dir.clone();
+    envPackage.append(ENVIRONMENT_PACKAGE);
+
+    var window = Services.wm.getMostRecentWindow("MozMill:Crowd");
+    window.openDialog("chrome://mozmill-crowd/content/unpack.xul",
+                      "Extract",
+                      "dialog, modal, centerscreen, titlebar=no",
+                      envPackage,
+                      this.dir.clone());
+  },
+
+  /**
+   * Read the '.status' file to retrieve the latest state of the storage
+   */
+  readStatusFile : function Storage_readStatusFile() {
+    this._status = STATUS_NOT_INITIALIZED;
+
+    try {
+      var file = this._dir.clone();
+      file.append(".status");
+
+      var fstream = Cc["@mozilla.org/network/file-input-stream;1"].
+                    createInstance(Ci.nsIFileInputStream);
+      var cstream = Cc["@mozilla.org/intl/converter-input-stream;1"].
+                    createInstance(Ci.nsIConverterInputStream);
+      fstream.init(file, -1, 0, 0);
+      cstream.init(fstream, "UTF-8", 0, 0);
+
+      var str = { };
+      cstream.readString(0xffffffff, str);
+      cstream.close();
+
+      var value = str.value.trim();
+      if (STORAGE_STATES.indexOf(value) != - 1)
+        this._status = value;
     }
-
-    // Extract the test environment if it hasn't been done yet
-    var envDir = this.dir.clone();
-    envDir.append(ENVIRONMENT_DIR);
-
-    if (!envDir.exists()) {
-      this.extract(envPackage, this.dir);
+    catch (ex) {
     }
-
-    // Prepare the environment
-    this._createEnvironment();
-    this.environment.setup();
   }
 };

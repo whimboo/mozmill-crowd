@@ -42,7 +42,11 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
-var Utils = { }; Cu.import('resource://mozmill-crowd/utils.js', Utils);
+// Import global JS modules
+Cu.import("resource://gre/modules/Services.jsm");
+
+// Import local JS modules
+Cu.import('resource://mozmill-crowd/utils.js');
 
 
 const BINARIES = {
@@ -56,9 +60,6 @@ const BINARIES = {
  *
  */
 function Application(aPath) {
-  this._appInfo = Utils.gAppInfo;
-  this._dirSrv = Utils.gDirService;
-
   // On OS X we need the real executable binary
   if (aPath && aPath.isDirectory() &&
       this.XULRuntime.OS == "Darwin") {
@@ -74,14 +75,14 @@ Application.prototype = {
    *
    */
   get appInfo() {
-    return this._appInfo;
+    return Services.appinfo;
   },
 
   /**
    *
    */
   get XULRuntime() {
-    return this._appInfo.QueryInterface(Ci.nsIXULRuntime);
+    return Services.appinfo.QueryInterface(Ci.nsIXULRuntime);
   },
 
   /**
@@ -132,7 +133,7 @@ Application.prototype = {
    * @returns Path of the application
    */
   currentAppBinary: function Application_currentAppBinary() {
-    var binary = this._dirSrv.get("CurProcD", Ci.nsIFile);
+    var binary = Services.dirsvc.get("CurProcD", Ci.nsIFile);
     binary.append(BINARIES[this.XULRuntime.OS]);
 
     return binary;

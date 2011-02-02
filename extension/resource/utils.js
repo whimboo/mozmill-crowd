@@ -34,154 +34,129 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-var EXPORTED_SYMBOLS = [
-  "gAppInfo", "gDirService", "gPrefService", "gWindowMediator", "gWindowWatcher",
-  "readIniFile",
-  "getPref", "setPref"
-];
+var EXPORTED_SYMBOLS = ["Utils"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
+// Import global JS modules
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-
-// Lazily load necessary XPCOM services
-XPCOMUtils.defineLazyServiceGetter(this, "gAppInfo",
-                                   "@mozilla.org/xre/app-info;1",
-                                   "nsIXULAppInfo");
-
-XPCOMUtils.defineLazyServiceGetter(this, "gDirService",
-                                   "@mozilla.org/file/directory_service;1",
-                                   "nsIProperties");
-
-XPCOMUtils.defineLazyServiceGetter(this, "gPrefService",
-                                   "@mozilla.org/preferences-service;1",
-                                   "nsIPrefService");
-
-XPCOMUtils.defineLazyServiceGetter(this, "gWindowMediator",
-                                   "@mozilla.org/appshell/window-mediator;1",
-                                   "nsIWindowMediator");
-
-XPCOMUtils.defineLazyServiceGetter(this, "gWindowWatcher",
-                                   "@mozilla.org/embedcomp/window-watcher;1",
-                                   "nsIWindowWatcher");
+Cu.import("resource://gre/modules/Services.jsm");
 
 
-/////////////////////////////
-// SECTION: File handling
+var Utils = {
+  // Cached instance for accessing preferences
+  prefBranch : Services.prefs.QueryInterface(Ci.nsIPrefBranch),
 
-/**
- * Read the specified ini file and store its data in a JSON object
- *
- * @param {nsIFile} aIniFile
- *        Ini file to retrieve the content from
- * @returns {object} Content of the ini file
- */
-function readIniFile(aIniFile) {
-  // Parse the ini file to retrieve all values
-  var factory = Cc["@mozilla.org/xpcom/ini-processor-factory;1"].
-                getService(Ci.nsIINIParserFactory);
-  var parser = factory.createINIParser(aIniFile);
 
-  var contents = { };
-  var sectionsEnum = parser.getSections();
-  while (sectionsEnum && sectionsEnum.hasMore()) {
-    var section = sectionsEnum.getNext();
-    var keys = { };
-
-    var keysEnum = parser.getKeys(section);
-    while (keysEnum && keysEnum.hasMore()) {
-      var key = keysEnum.getNext();
-
-      keys[key] = parser.getString(section, key);
+  /**
+   * Read the specified ini file and store its data in a JSON object
+   *
+   * @param {nsIFile} aIniFile
+   *        Ini file to retrieve the content from
+   * @returns {object} Content of the ini file
+   */
+  readIniFile : function Utils_readIniFile(aIniFile) {
+    // Parse the ini file to retrieve all values
+    var factory = Cc["@mozilla.org/xpcom/ini-processor-factory;1"].
+                  getService(Ci.nsIINIParserFactory);
+    var parser = factory.createINIParser(aIniFile);
+  
+    var contents = { };
+    var sectionsEnum = parser.getSections();
+    while (sectionsEnum && sectionsEnum.hasMore()) {
+      var section = sectionsEnum.getNext();
+      var keys = { };
+  
+      var keysEnum = parser.getKeys(section);
+      while (keysEnum && keysEnum.hasMore()) {
+        var key = keysEnum.getNext();
+  
+        keys[key] = parser.getString(section, key);
+      }
+  
+      contents[section] = keys;
     }
+  
+    return contents;
+  },
 
-    contents[section] = keys;
+
+  /**
+   * Retrieve the value of an individual preference.
+   *
+   * @param {string} prefName
+   *        The preference to get the value of.
+   * @param {boolean/number/string} defaultValue
+   *        The default value if preference cannot be found.
+   * @param {boolean/number/string} defaultBranch
+   *        If true the value will be read from the default branch (optional)
+   * @param {string} interfaceType
+   *        Interface to use for the complex value (optional)
+   *        (nsILocalFile, nsISupportsString, nsIPrefLocalizedString)
+   *
+   * @return The value of the requested preference
+   * @type boolean/int/string/complex
+   */
+  getPref : function Utils_getPref(prefName, defaultValue, defaultBranch, interfaceType) {
+    try {
+      branch = defaultBranch ? Services.prefs.getDefaultBranch("") : this.prefBranch;
+  
+      // If interfaceType has been set, handle it differently
+      if (interfaceType != undefined) {
+        return branch.getComplexValue(prefName, interfaceType);
+      }
+  
+      switch (typeof defaultValue) {
+        case ('boolean'):
+          return branch.getBoolPref(prefName);
+        case ('string'):
+          return branch.getCharPref(prefName);
+        case ('number'):
+          return branch.getIntPref(prefName);
+        default:
+          return undefined;
+      }
+    } catch(e) {
+      return defaultValue;
+    }
+  },
+
+  /**
+   * Set the value of an individual preference.
+   *
+   * @param {string} prefName
+   *        The preference to set the value of.
+   * @param {boolean/number/string/complex} value
+   *        The value to set the preference to.
+   * @param {string} interfaceType
+   *        Interface to use for the complex value
+   *        (nsILocalFile, nsISupportsString, nsIPrefLocalizedString)
+   *
+   * @return Returns if the value was successfully set.
+   * @type boolean
+   */
+  setPref : function Utils_setPref(prefName, value, interfaceType) {
+    try {
+      switch (typeof value) {
+        case ('boolean'):
+          gPrefBranch.setBoolPref(prefName, value);
+          break;
+        case ('string'):
+          gPrefBranch.setCharPref(prefName, value);
+          break;
+        case ('number'):
+          gPrefBranch.setIntPref(prefName, value);
+          break;
+        default:
+          prefBranch.setComplexValue(prefName, interfaceType, value);
+      }
+    } catch(e) {
+      return false;
+    }
+  
+    return true;
   }
+};
 
-  return contents;
-}
-
-
-/////////////////////////////
-// SECTION: Preferences
-
-// Cached instances for accessing preferences
-var gPrefBranch = gPrefService.QueryInterface(Ci.nsIPrefBranch);
-
-/**
- * Retrieve the value of an individual preference.
- *
- * @param {string} prefName
- *        The preference to get the value of.
- * @param {boolean/number/string} defaultValue
- *        The default value if preference cannot be found.
- * @param {boolean/number/string} defaultBranch
- *        If true the value will be read from the default branch (optional)
- * @param {string} interfaceType
- *        Interface to use for the complex value (optional)
- *        (nsILocalFile, nsISupportsString, nsIPrefLocalizedString)
- *
- * @return The value of the requested preference
- * @type boolean/int/string/complex
- */
-function getPref(prefName, defaultValue, defaultBranch, interfaceType) {
-  try {
-    branch = defaultBranch ? gPrefService.getDefaultBranch("") : gPrefBranch;
-
-    // If interfaceType has been set, handle it differently
-    if (interfaceType != undefined) {
-      return branch.getComplexValue(prefName, interfaceType);
-    }
-
-    switch (typeof defaultValue) {
-      case ('boolean'):
-        return branch.getBoolPref(prefName);
-      case ('string'):
-        return branch.getCharPref(prefName);
-      case ('number'):
-        return branch.getIntPref(prefName);
-      default:
-        return undefined;
-    }
-  } catch(e) {
-    return defaultValue;
-  }
-}
-
-/**
- * Set the value of an individual preference.
- *
- * @param {string} prefName
- *        The preference to set the value of.
- * @param {boolean/number/string/complex} value
- *        The value to set the preference to.
- * @param {string} interfaceType
- *        Interface to use for the complex value
- *        (nsILocalFile, nsISupportsString, nsIPrefLocalizedString)
- *
- * @return Returns if the value was successfully set.
- * @type boolean
- */
-function setPref(prefName, value, interfaceType) {
-  try {
-    switch (typeof value) {
-      case ('boolean'):
-        gPrefBranch.setBoolPref(prefName, value);
-        break;
-      case ('string'):
-        gPrefBranch.setCharPref(prefName, value);
-        break;
-      case ('number'):
-        gPrefBranch.setIntPref(prefName, value);
-        break;
-      default:
-        gPrefBranch.setComplexValue(prefName, interfaceType, value);
-    }
-  } catch(e) {
-    return false;
-  }
-
-  return true;
-}

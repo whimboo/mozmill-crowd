@@ -38,9 +38,14 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
-var Application = { }; Cu.import('resource://mozmill-crowd/application.js', Application);
-var Storage = { }; Cu.import('resource://mozmill-crowd/storage.js', Storage);
-var Utils = { }; Cu.import('resource://mozmill-crowd/utils.js', Utils);
+// Import global JS modules
+Cu.import("resource://gre/modules/Services.jsm");
+
+// Import local JS modules
+Cu.import('resource://mozmill-crowd/application.js');
+Cu.import('resource://mozmill-crowd/environment.js');
+Cu.import('resource://mozmill-crowd/storage.js');
+Cu.import('resource://mozmill-crowd/utils.js');
 
 const AVAILABLE_TEST_RUNS = [{
   name : "General Test-run", script: "testrun_general.py" }, {
@@ -65,7 +70,7 @@ var gMozmillCrowd = {
     this._stringBundle = document.getElementById("mozmill-crowd-stringbundle");
 
     // Add the current application as default
-    this.addApplicationToList(new Application.Application());
+    this.addApplicationToList(new Application());
 
     // Populate the test-run drop down with allowed test-runs
     var popup = document.getElementById("selectTestrunPopup");
@@ -80,6 +85,13 @@ var gMozmillCrowd = {
     });
 
     this._testruns.selectedIndex = 0;
+
+    // XXX: need to unregister on unload of the window
+    this._observer = new EnvironmentObserver();
+
+    var dir = this.getStorageLocation();
+    this._storage = new Storage(dir);
+    this._environment = new Environment(this._storage);
   },
 
   /**
@@ -114,7 +126,7 @@ var gMozmillCrowd = {
     fp.init(window, "Select a File", Ci.nsIFilePicker.modeOpen);
     if (fp.show() == Ci.nsIFilePicker.returnOK) {
       try {
-        application = new Application.Application(fp.file);
+        application = new Application(fp.file);
         this.addApplicationToList(application);
       }
       catch (e) {
@@ -126,8 +138,8 @@ var gMozmillCrowd = {
   },
 
   checkAndSetup : function gMozmillCrowd_checkAndSetup() {
-    var dir = this.getStorageLocation();
-    this._storage = new Storage.Storage(dir);
+    // XXX: To be removed before landing
+    return;
 
     var path = this._storage.dir.clone();
     path.append("mozmill-automation");
@@ -219,11 +231,11 @@ var gMozmillCrowd = {
    * Opens the preferences dialog
    */
   openPreferences : function gMozmillCrowd_openPreferences(event) {
-    Utils.gWindowWatcher.openWindow(null,
-                                    "chrome://mozmill-crowd/content/preferences.xul",
-                                    "",
-                                    "chrome,dialog,modal",
-                                    null);
+    Services.ww.openWindow(null,
+                           "chrome://mozmill-crowd/content/preferences.xul",
+                           "",
+                           "chrome,dialog,modal",
+                           null);
   },
 
   startTestrun : function gMozmillCrowd_startTestrun(event) {
@@ -271,8 +283,8 @@ var gMozmillCrowd = {
       // XXX: The automation scripts don't support the binary yet
       args = args.concat(this._applications.selectedItem.value.bundle.path);
 
-      this._storage.environment.run(args);
-      this.loadLogFile(logfile);
+      this._environment.run(args);
+      //this.loadLogFile(logfile);
     }
     catch (e) {
       window.alert(e.message);
@@ -281,5 +293,51 @@ var gMozmillCrowd = {
       // Restore the original timeout for chrome scripts
       Utils.setPref(chromeTimeoutPref, chromeTimeoutValue);
     }
+  }
+};
+
+
+/**
+ * @class Observer used to handle nsIProcess notifications
+ * @constructor
+ */
+function EnvironmentObserver() {
+  this.register();
+}
+
+EnvironmentObserver.prototype = {
+  /**
+   * Observe the process for an exit notification
+   *
+   * @param {object} aSubject Instance of the Environment class
+   * @param {string} aTopic Notification topic (process-finished, process-failed)
+   * @param {string} aData Not used.
+   */
+  observe : function ProcessObserver_observe(aSubject, aTopic, aData) {
+    Cu.reportError(aTopic + " " + gMozmillCrowd._environment._command.path +
+                   " " + gMozmillCrowd._environment._process.exitValue);
+    switch (aTopic) {
+      case ENV_OBSERVER_TOPICS.PROCESS_STARTED_TOPIC:
+        gMozmillCrowd._execButton.setAttribute('disabled', 'true');
+        break;
+      case ENV_OBSERVER_TOPICS.PROCESS_STOPPED_TOPIC:
+        gMozmillCrowd._execButton.setAttribute('disabled', 'false');
+        break;
+    }
+    
+  },
+
+  register : function() {
+    Services.obs.addObserver(this,
+                             ENV_OBSERVER_TOPICS.PROCESS_STARTED_TOPIC,
+                             false);
+    Services.obs.addObserver(this,
+                             ENV_OBSERVER_TOPICS.PROCESS_STOPPED_TOPIC,
+                             false);
+  },
+
+  unregister: function() {
+    Services.obs.removeObserver(this, ENV_OBSERVER_TOPICS.PROCESS_STARTED_TOPIC);
+    Services.obs.removeObserver(this, ENV_OBSERVER_TOPICS.PROCESS_STOPPED_TOPIC);
   }
 };

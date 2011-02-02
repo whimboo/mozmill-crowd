@@ -35,27 +35,54 @@
  * ***** END LICENSE BLOCK ***** */
 
 var EXPORTED_SYMBOLS = [
-  "Environment"
+  "Environment", "ENV_OBSERVER_TOPICS"
 ];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
+// Import global JS modules
 Cu.import("resource://gre/modules/FileUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 
-var Utils = { }; Cu.import('resource://mozmill-crowd/utils.js', Utils);
+// Import local JS modules
+Cu.import('resource://mozmill-crowd/storage.js');
+Cu.import('resource://mozmill-crowd/utils.js');
 
+
+
+const ENV_OBSERVER_TOPICS = {
+  PROCESS_STARTED_TOPIC: "mozmill-crowd-process-started",
+  PROCESS_STOPPED_TOPIC: "mozmill-crowd-process-finished"
+}
 
 /**
  *
  */
-function Environment(aDir) {
-  this._dir = aDir;
+function Environment(aStorage) {
+  this._storage = aStorage;
+  this._dir = aStorage.environmentPath;
+
   this._readConfigFile();
 }
 
 Environment.prototype = {
+  /**
+   * 
+   */
+  _command : null,
+
+  /**
+   * 
+   */
+  _params : null,
+
+  /**
+   * 
+   */
+  _process : null,
+
   /**
    *
    */
@@ -71,19 +98,39 @@ Environment.prototype = {
   /**
    *
    */
-  get isActive() {
-
+  get isRunning() {
+    return (this._process && this._process.isRunning);
   },
 
   /**
    *
    */
-  _execute: function Environment__execute(aScript, aParams) {
-    // TODO: Has to be a non-blocking process
-    var process = Cc["@mozilla.org/process/util;1"].
-                  createInstance(Ci.nsIProcess);
-    process.init(aScript);
-    process.run(true, aParams, aParams.length);
+  _execute: function Environment__execute(aCommand, aParams) {
+    try {
+      // Do not execute another process while another one is currently running
+      if (this.isRunning) {
+        throw new Error("Another process is still running: " + this._command.path);
+      }
+
+      this._command = aCommand;
+      this._params = aParams;
+
+      this._process = Cc["@mozilla.org/process/util;1"].
+                      createInstance(Ci.nsIProcess);
+      this._process.init(this._command);
+      this._process.runwAsync(this._params, this._params.length,
+                              new ProcessObserver(this));
+
+      Services.obs.notifyObservers(null,
+                                   ENV_OBSERVER_TOPICS.PROCESS_STARTED_TOPIC,
+                                   null);
+    }
+    catch (ex) {
+      this._process = null;
+
+      Cu.reportError(ex);
+      throw new Error("Failed to execute: '" + this._command.path);
+    }
   },
 
   /**
@@ -123,5 +170,34 @@ Environment.prototype = {
    *
    */
   stop : function Environment_stop() {
+    if (this._process)
+      this._process.kill();
   }
+};
+
+
+/**
+ * @class Observer used to handle nsIProcess notifications
+ * @constructor
+ */
+function ProcessObserver(aEnvironment) {
 }
+
+ProcessObserver.prototype = {
+  /**
+   * Observe the process for an exit notification
+   *
+   * @param {object} aSubject Instance of the nsIProcess
+   * @param {string} aTopic Notification topic (process-finished, process-failed)
+   * @param {string} aData Not used.
+   */
+  observe : function ProcessObserver_observe(aSubject, aTopic, aData) {
+    switch (aTopic) {
+      case "process-finished":
+      case "process-failed":
+        Services.obs.notifyObservers(null,
+                                     ENV_OBSERVER_TOPICS.PROCESS_STOPPED_TOPIC,
+                                     null);
+    }
+  }
+};
