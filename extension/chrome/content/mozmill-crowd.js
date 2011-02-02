@@ -314,8 +314,8 @@ EnvironmentObserver.prototype = {
    * @param {string} aData Not used.
    */
   observe : function ProcessObserver_observe(aSubject, aTopic, aData) {
-    Cu.reportError(aTopic + " " + gMozmillCrowd._environment._command.path +
-                   " " + gMozmillCrowd._environment._process.exitValue);
+    Cu.reportError(aTopic + " " + gMozmillCrowd._environment._lastCommand.path +
+                   " " + gMozmillCrowd._environment.exitValue);
     switch (aTopic) {
       case ENV_OBSERVER_TOPICS.PROCESS_STARTED_TOPIC:
         gMozmillCrowd._execButton.setAttribute('disabled', 'true');

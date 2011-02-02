@@ -71,12 +71,12 @@ Environment.prototype = {
   /**
    * 
    */
-  _command : null,
+  _lastCommand : null,
 
   /**
    * 
    */
-  _params : null,
+  _lastParams : null,
 
   /**
    * 
@@ -98,6 +98,13 @@ Environment.prototype = {
   /**
    *
    */
+  get exitValue() {
+    return this._process ? this._process.exitValue : -1;
+  },
+
+  /**
+   *
+   */
   get isRunning() {
     return (this._process && this._process.isRunning);
   },
@@ -109,17 +116,17 @@ Environment.prototype = {
     try {
       // Do not execute another process while another one is currently running
       if (this.isRunning) {
-        throw new Error("Another process is still running: " + this._command.path);
+        throw new Error("Another process is still running: " + this._lastCommand.path);
       }
-
-      this._command = aCommand;
-      this._params = aParams;
 
       this._process = Cc["@mozilla.org/process/util;1"].
                       createInstance(Ci.nsIProcess);
-      this._process.init(this._command);
-      this._process.runwAsync(this._params, this._params.length,
+      this._process.init(aCommand);
+      this._process.runwAsync(aParams, aParams.length,
                               new ProcessObserver(this));
+
+      this._lastCommand = aCommand;
+      this._lastParams = aParams;
 
       Services.obs.notifyObservers(null,
                                    ENV_OBSERVER_TOPICS.PROCESS_STARTED_TOPIC,
@@ -129,7 +136,7 @@ Environment.prototype = {
       this._process = null;
 
       Cu.reportError(ex);
-      throw new Error("Failed to execute: '" + this._command.path);
+      throw new Error("Failed to execute: '" + aCommand.path);
     }
   },
 
