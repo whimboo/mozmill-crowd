@@ -35,7 +35,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 var EXPORTED_SYMBOLS = [
-  "Environment", "ENV_OBSERVER_TOPICS"
+  "Environment", "EnvObserverTopics"
 ];
 
 const Cc = Components.classes;
@@ -47,22 +47,19 @@ Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
 // Import local JS modules
-Cu.import('resource://mozmill-crowd/storage.js');
 Cu.import('resource://mozmill-crowd/utils.js');
 
 
-
-const ENV_OBSERVER_TOPICS = {
-  PROCESS_STARTED_TOPIC: "mozmill-crowd-process-started",
-  PROCESS_STOPPED_TOPIC: "mozmill-crowd-process-finished"
+var EnvObserverTopics = {
+  PROCESS_STARTED: "mozmill-crowd-process-started",
+  PROCESS_STOPPED: "mozmill-crowd-process-finished"
 }
 
 /**
  *
  */
-function Environment(aStorage) {
-  this._storage = aStorage;
-  this._dir = aStorage.environmentPath;
+function Environment(aDir) {
+  this._dir = aDir;
 
   this._readConfigFile();
 }
@@ -128,9 +125,7 @@ Environment.prototype = {
       this._lastCommand = aCommand;
       this._lastParams = aParams;
 
-      Services.obs.notifyObservers(null,
-                                   ENV_OBSERVER_TOPICS.PROCESS_STARTED_TOPIC,
-                                   null);
+      Services.obs.notifyObservers(null, EnvObserverTopics.PROCESS_STARTED, null);
     }
     catch (ex) {
       this._process = null;
@@ -187,12 +182,12 @@ Environment.prototype = {
  * @class Observer used to handle nsIProcess notifications
  * @constructor
  */
-function ProcessObserver(aEnvironment) {
+function ProcessObserver() {
 }
 
 ProcessObserver.prototype = {
   /**
-   * Observe the process for an exit notification
+   * Observe the process for notifications and forward
    *
    * @param {object} aSubject Instance of the nsIProcess
    * @param {string} aTopic Notification topic (process-finished, process-failed)
@@ -202,9 +197,7 @@ ProcessObserver.prototype = {
     switch (aTopic) {
       case "process-finished":
       case "process-failed":
-        Services.obs.notifyObservers(null,
-                                     ENV_OBSERVER_TOPICS.PROCESS_STOPPED_TOPIC,
-                                     null);
+        Services.obs.notifyObservers(null, EnvObserverTopics.PROCESS_STOPPED, null);
     }
   }
 };

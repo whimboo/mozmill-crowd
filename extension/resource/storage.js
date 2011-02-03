@@ -35,7 +35,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 var EXPORTED_SYMBOLS = [
-  "Storage"
+  "Storage", "StorageStates"
 ];
 
 const Cc = Components.classes;
@@ -46,6 +46,9 @@ const Cu = Components.utils;
 Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
+// Import local JS modules
+Cu.import('resource://mozmill-crowd/environment.js');
+Cu.import('resource://mozmill-crowd/utils.js');
 
 // XXX: For now lets use constants. Has to be moved out to a web service which
 // will return the latest package and the hash
@@ -62,19 +65,20 @@ const ENVIRONMENT_DATA = {
 };
 
 const ENVIRONMENT_PACKAGE = "mozmill-env.zip";
+const STATUS_FILENAME     = ".status";
 
-// States of the storage folder
-const STATUS_NOT_INITIALIZED = "not initialized";
-const STATUS_ENV_DOWNLOAD = "download";
-const STATUS_ENV_SETUP = "setup";
-const STATUS_READY = "ready";
-
-const STORAGE_STATES = [
-  STATUS_NOT_INITIALIZED,
-  STATUS_ENV_DOWNLOAD,
-  STATUS_ENV_SETUP,
-  STATUS_READY
-];
+var StorageStates = {
+  STATE_UNKNOWN         : "unkown",
+  STATE_FAILURE         : "failure",
+  STATE_DOWNLOADING     : "downloading",
+  STATE_EXTRACTING      : "extracting",
+  STATE_INITIALIZE      : "initialize",
+  STATE_INITIALIZING    : "initializing",
+  STATE_SETUP_REPO      : "setup repository",
+  STATE_SETTING_UP_REPO : "seting up repository",
+  STATE_UPDATE_PENDING  : "pending update",
+  STATE_READY           : "ready"
+};
 
 
 /**
@@ -90,7 +94,7 @@ function Storage(aDir) {
                     FileUtils.PERMS_DIRECTORY);
   }
 
-  this.readStatusFile();
+  this._status = this.readStatusFromFile();
 }
 
 Storage.prototype = {
@@ -99,6 +103,11 @@ Storage.prototype = {
    *
    */
   _dir : null,
+
+  /**
+   *
+   */
+  _environment : null,
 
   /**
    *
@@ -149,42 +158,170 @@ Storage.prototype = {
   /**
    *
    */
-  downloadEnvironment : function Storage_downloadEnvironment() {
-    var envPackage = this.dir.clone();
-    envPackage.append(ENVIRONMENT_PACKAGE);
+  set status(aStatus) {
+    this._status = aStatus;
 
-    var window = Services.wm.getMostRecentWindow("MozMill:Crowd");
-    window.openDialog("chrome://mozmill-crowd/content/download.xul",
-                      "Download",
-                      "dialog, modal, centerscreen, titlebar=no",
-                      ENVIRONMENT_DATA[Services.appinfo.OS].url,
-                      envPackage);
+    this.writeStatusToFile(this._status);
   },
 
   /**
    *
    */
-  extractEnvironment : function Storage_extractEnvironment() {
-    var envPackage = this.dir.clone();
-    envPackage.append(ENVIRONMENT_PACKAGE);
+  _createEnvironment : function Storage_createEnvironment() {
+    if (!this._environment)
+      this._environment = new Environment(this.environmentPath);
+  },
 
-    var window = Services.wm.getMostRecentWindow("MozMill:Crowd");
-    window.openDialog("chrome://mozmill-crowd/content/unpack.xul",
-                      "Extract",
-                      "dialog, modal, centerscreen, titlebar=no",
-                      envPackage,
-                      this.dir.clone());
+  /**
+   *
+   */
+  execute : function Storage_execute(aParams) {
+    if (this.status == StorageStates.STATE_READY) {
+      this._environment.run(aParams);
+    }
+    else {
+      throw new Error("Environment hasn't been fully setup yet");
+    }
+  },
+
+  /**
+   *
+   */
+  handleStatus : function Storage_handleStatus() {
+    switch (this.status) {
+      // Environment hasn't been downloaded yet
+      case StorageStates.STATE_UNKNOWN:
+      case StorageStates.STATE_DOWNLOADING:
+        try {
+          var envPackage = this.dir.clone();
+          envPackage.append(ENVIRONMENT_PACKAGE);
+      
+          var window = Services.wm.getMostRecentWindow("MozMill:Crowd");
+          window.openDialog("chrome://mozmill-crowd/content/download.xul",
+                            "Download",
+                            "dialog, modal, centerscreen, titlebar=no",
+                            ENVIRONMENT_DATA[Services.appinfo.OS].url,
+                            envPackage);
+
+          this.status = StorageStates.STATE_EXTRACTING;
+          break;
+        }
+        catch (ex) {
+          Cu.reportError(ex);
+          this.status = StorageStates.STATE_FAILURE;
+        }
+
+      // Extract downloaded environment
+      case StorageStates.STATE_EXTRACTING:
+        try {
+          var envPackage = this.dir.clone();
+          envPackage.append(ENVIRONMENT_PACKAGE);
+
+          var window = Services.wm.getMostRecentWindow("MozMill:Crowd");
+          window.openDialog("chrome://mozmill-crowd/content/unpack.xul",
+                            "Extract",
+                            "dialog, modal, centerscreen, titlebar=no",
+                            envPackage,
+                            this.dir.clone());
+
+          this.status = StorageStates.STATE_INITIALIZE;
+          break;
+        }
+        catch (ex) {
+          Cu.reportError(ex);
+          this.status = StorageStates.STATE_DOWNLOADING;
+        }
+
+      // Initialize environment
+      case StorageStates.STATE_INITIALIZE:
+        try {
+          this._createEnvironment();
+          this._environment.setup();
+
+          this.status = StorageStates.STATE_INITIALIZING;
+          break;
+        }
+        catch (ex) {
+          Cu.reportError(ex);
+          this.status = StorageStates.STATE_FAILURE;
+        }
+
+      // Initialize environment
+      case StorageStates.STATE_INITIALIZING:
+        try {
+          this._createEnvironment();
+          if (!this._environment.isRunning)
+            this.status = StorageStates.STATE_SETUP_REPO;
+          break;
+        }
+        catch (ex) {
+          Cu.reportError(ex);
+          this.status = StorageStates.STATE_FAILURE;
+        }
+
+      // Clone the mozmill automation repository
+      case StorageStates.STATE_SETUP_REPO:
+        try {
+          this._createEnvironment();
+
+          var path = this.dir.clone();
+          path.append("mozmill-automation");
+  
+          // Until we have a reliable way to pull from the repository we will clone
+          // it again for now.
+          if (path.exists())
+            path.remove(true);
+      
+          var repository = Utils.getPref("extensions.mozmill-crowd.repositories.mozmill-automation", "");
+          this._environment.run(["hg", "clone", repository, path.path]);
+  
+            this.status = StorageStates.STATE_SETTING_UP_REPO;
+            break;
+        }
+        catch (ex) {
+          Cu.reportError(ex);
+          this.status = StorageStates.STATE_FAILURE;
+        }
+
+      // Wait while repository is cloned
+      case StorageStates.STATE_SETTING_UP_REPO:
+        try {
+          this._createEnvironment();
+          if (!this._environment.isRunning)
+            this.status = StorageStates.STATE_READY;
+          break;
+        }
+        catch (ex) {
+          Cu.reportError(ex);
+          this.status = StorageStates.FAILURE;
+        }
+
+      // Ready state
+      case StorageStates.STATE_READY:
+        this._createEnvironment();
+
+        try {
+          
+          if (!this._environment.isRunning)
+            this.status = StorageStates.STATE_READY;
+          break;
+        }
+        catch (ex) {
+          Cu.reportError(ex);
+          this.status = StorageStates.FAILURE;
+        }
+    }
   },
 
   /**
    * Read the '.status' file to retrieve the latest state of the storage
    */
-  readStatusFile : function Storage_readStatusFile() {
-    this._status = STATUS_NOT_INITIALIZED;
+  readStatusFromFile : function Storage_readStatusFromFile() {
+    var status = StorageStates.STATE_UNKNOWN;
 
     try {
       var file = this._dir.clone();
-      file.append(".status");
+      file.append(STATUS_FILENAME);
 
       var fstream = Cc["@mozilla.org/network/file-input-stream;1"].
                     createInstance(Ci.nsIFileInputStream);
@@ -197,11 +334,37 @@ Storage.prototype = {
       cstream.readString(0xffffffff, str);
       cstream.close();
 
+      // Check for validity of the read-in state
       var value = str.value.trim();
-      if (STORAGE_STATES.indexOf(value) != - 1)
-        this._status = value;
+      for (var prop in StorageStates) {
+        if (StorageStates[prop] === value) {
+          status = value;
+          break;
+        }
+      }
     }
     catch (ex) {
+    }
+    
+    return status;
+  },
+
+  /**
+   *
+   */
+  writeStatusToFile : function Storage_writeStatusToFile(aStatus) {
+    try {
+      var file = this._dir.clone();
+      file.append(STATUS_FILENAME);
+
+      var fstream = Cc["@mozilla.org/network/file-output-stream;1"].
+                    createInstance(Ci.nsIFileOutputStream);
+      fstream.init(file, 0x02 | 0x08 | 0x20, -1, 0);
+      fstream.write(aStatus, aStatus.length);
+      fstream.close();
+    }
+    catch (ex) {
+      Cu.reportError(ex);
     }
   }
 };

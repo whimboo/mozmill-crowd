@@ -86,12 +86,12 @@ var gMozmillCrowd = {
 
     this._testruns.selectedIndex = 0;
 
-    // XXX: need to unregister on unload of the window
+    // XXX: need to unregister on unload of the window + timer
     this._observer = new EnvironmentObserver();
 
-    var dir = this.getStorageLocation();
-    this._storage = new Storage(dir);
-    this._environment = new Environment(this._storage);
+    // Initialize and update the storage
+    this._timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    this._timer.initWithCallback(StorageTimer, 100, Ci.nsITimer.TYPE_ONE_SHOT);
   },
 
   /**
@@ -136,22 +136,6 @@ var gMozmillCrowd = {
       }
     }
   },
-
-  checkAndSetup : function gMozmillCrowd_checkAndSetup() {
-    // XXX: To be removed before landing
-    return;
-
-    var path = this._storage.dir.clone();
-    path.append("mozmill-automation");
-
-    // Until we have a reliable way to pull from the repository we will clone
-    // it again for now.
-    if (path.exists())
-      path.remove(true);
-
-    var repository = Utils.getPref("extensions.mozmill-crowd.repositories.mozmill-automation", "");
-    this._storage.environment.run(["hg", "clone", repository, path.path]);
- },
 
   /**
    * XXX: Stop a test-run before closing the dialog
@@ -223,7 +207,7 @@ var gMozmillCrowd = {
       cstream.close();
     }
     catch (e) {
-      window.alert(e.message);
+      Cu.reportError(e);
     }
   },
 
@@ -247,8 +231,6 @@ var gMozmillCrowd = {
       // XXX: Can be removed when we have non-blocking process calls
       chromeTimeoutValue = Utils.getPref(chromeTimeoutPref, chromeTimeoutValue);
       Utils.setPref(chromeTimeoutPref, -1);
-
-      this.checkAndSetup();
 
       var testrun = this._testruns.selectedItem.value;
       var script = this._storage.dir.clone();
@@ -283,8 +265,8 @@ var gMozmillCrowd = {
       // XXX: The automation scripts don't support the binary yet
       args = args.concat(this._applications.selectedItem.value.bundle.path);
 
-      this._environment.run(args);
-      //this.loadLogFile(logfile);
+      this._output.value = "";
+      this._storage._environment.run(args);
     }
     catch (e) {
       window.alert(e.message);
@@ -295,6 +277,27 @@ var gMozmillCrowd = {
     }
   }
 };
+
+
+/**
+ *
+ */
+var StorageTimer = {
+  notify: function (aTimer) {
+    var self = gMozmillCrowd;
+
+    if (!self._storage) {
+      // Check if a storage folder has already been created.
+      // If not, ask the user and create the folder.
+      var dir = self.getStorageLocation();
+      self._storage = new Storage(dir);
+    }
+
+    self._storage.handleStatus();
+    aTimer.initWithCallback(StorageTimer, 100, Ci.nsITimer.TYPE_ONE_SHOT);
+    //self._environment = new Environment(self._storage);
+  }
+}
 
 
 /**
@@ -314,30 +317,34 @@ EnvironmentObserver.prototype = {
    * @param {string} aData Not used.
    */
   observe : function ProcessObserver_observe(aSubject, aTopic, aData) {
-    Cu.reportError(aTopic + " " + gMozmillCrowd._environment._lastCommand.path +
-                   " " + gMozmillCrowd._environment.exitValue);
     switch (aTopic) {
-      case ENV_OBSERVER_TOPICS.PROCESS_STARTED_TOPIC:
+      case EnvObserverTopics.PROCESS_STARTED:
+        Cu.reportError("Process started: " + gMozmillCrowd._storage._environment._lastCommand.path);
         gMozmillCrowd._execButton.setAttribute('disabled', 'true');
         break;
-      case ENV_OBSERVER_TOPICS.PROCESS_STOPPED_TOPIC:
+      case EnvObserverTopics.PROCESS_STOPPED:
+        Cu.reportError("Process finished: " + gMozmillCrowd._storage._environment._lastCommand.path +
+                   " " + gMozmillCrowd._storage._environment.exitValue);
+
         gMozmillCrowd._execButton.setAttribute('disabled', 'false');
+
+        // Show log if available
+        var logfile = gMozmillCrowd._storage.dir.clone();
+        logfile.append("testrun.log");
+
+        gMozmillCrowd.loadLogFile(logfile);
         break;
     }
     
   },
 
   register : function() {
-    Services.obs.addObserver(this,
-                             ENV_OBSERVER_TOPICS.PROCESS_STARTED_TOPIC,
-                             false);
-    Services.obs.addObserver(this,
-                             ENV_OBSERVER_TOPICS.PROCESS_STOPPED_TOPIC,
-                             false);
+    Services.obs.addObserver(this, EnvObserverTopics.PROCESS_STARTED, false);
+    Services.obs.addObserver(this, EnvObserverTopics.PROCESS_STOPPED, false);
   },
 
   unregister: function() {
-    Services.obs.removeObserver(this, ENV_OBSERVER_TOPICS.PROCESS_STARTED_TOPIC);
-    Services.obs.removeObserver(this, ENV_OBSERVER_TOPICS.PROCESS_STOPPED_TOPIC);
+    Services.obs.removeObserver(this, EnvObserverTopics.PROCESS_STARTED);
+    Services.obs.removeObserver(this, EnvObserverTopics.PROCESS_STOPPED);
   }
 };

@@ -150,7 +150,7 @@ var Utils = {
           gPrefBranch.setIntPref(prefName, value);
           break;
         default:
-          prefBranch.setComplexValue(prefName, interfaceType, value);
+          this.prefBranch.setComplexValue(prefName, interfaceType, value);
       }
     } catch(e) {
       return false;
