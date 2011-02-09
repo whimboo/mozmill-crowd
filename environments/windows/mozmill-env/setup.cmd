@@ -10,4 +10,4 @@ rem Update installation paths
 easy_install mercurial
 
 rem Install packages
-easy_install -U mozrunner jsbridge mozmill
+easy_install mozmill==1.5.1
