@@ -6,10 +6,5 @@ SET MOZMILL=%MOZMILLDRIVE%%MOZMILLPATH%
 
 SET PATH=%PATH%;%MOZMILL%\python26\;%MOZMILL%\python26\Scripts
 
-SET CMD=cmd
-IF %1!==! goto start
-set CMD=%1
-
-:start
-cd "%MOZMILL%"
-%CMD% "%*"
+echo "Welcome to Mozmill. Use 'mozmill --help' for assistance.
+%*
