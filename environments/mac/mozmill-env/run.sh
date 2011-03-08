@@ -6,10 +6,8 @@ PWD=$(dirname $0)
 source $PWD/bin/activate
 
 if [ $# -gt 0 ]; then
-    # start test-run
-    "$@"
+   # Execute all command line arguments
+   $@
 else
-    PS1=$PS1"$ "
-    $(bash --norc)
+   echo "Welcome to Mozmill. Use '$(basename $0) mozmill --help' for assistance."
 fi
-
