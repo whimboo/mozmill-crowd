@@ -7,4 +7,4 @@ python -B $PWD/scripts/virtualenv.py $PWD
 source $PWD/bin/activate
 
 # install dependencies
-easy_install mercurial mozmill==1.5.1
+easy_install -U mercurial mozrunner jsbridge mozmill
