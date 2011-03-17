@@ -36,7 +36,7 @@
 
 var EXPORTED_SYMBOLS = [
   "gAppInfo", "gDirService", "gPrefService", "gWindowMediator", "gWindowWatcher",
-  "readIniFile",
+  "readFile", "readIniFile",
   "getPref", "setPref"
 ];
 
@@ -70,6 +70,31 @@ XPCOMUtils.defineLazyServiceGetter(this, "gWindowWatcher",
 
 /////////////////////////////
 // SECTION: File handling
+
+/**
+ *
+ */
+readFile : function readFile(aFile) {
+  var fstream = Cc["@mozilla.org/network/file-input-stream;1"].
+                createInstance(Ci.nsIFileInputStream);
+  var cstream = Cc["@mozilla.org/intl/converter-input-stream;1"].
+                createInstance(Ci.nsIConverterInputStream);
+  fstream.init(aFile, -1, 0, 0);
+  cstream.init(fstream, "UTF-8", 0, 0);
+
+  var read = 0;
+  var content = "";
+  var str = { };
+  do {
+    read = cstream.readString(0xffffffff, str);
+    content += str.value;
+  } while (read != 0);
+
+  cstream.close();
+
+  return content;
+}
+
 
 /**
  * Read the specified ini file and store its data in a JSON object

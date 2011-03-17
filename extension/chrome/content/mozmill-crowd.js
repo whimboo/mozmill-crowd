@@ -189,33 +189,6 @@ var gMozmillCrowd = {
   },
 
   /**
-   *
-   */
-  loadLogFile : function gMozmillCrowd_loadLogFile(aLogFile) {
-    try {
-      var fstream = Cc["@mozilla.org/network/file-input-stream;1"].
-                    createInstance(Ci.nsIFileInputStream);
-      var cstream = Cc["@mozilla.org/intl/converter-input-stream;1"].
-                    createInstance(Ci.nsIConverterInputStream);
-      fstream.init(aLogFile, -1, 0, 0);
-      cstream.init(fstream, "UTF-8", 0, 0);
-
-      gMozmillCrowd._output.value = "";
-      var read = 0;
-      var str = { };
-      do {
-        read = cstream.readString(0xffffffff, str);
-        gMozmillCrowd._output.value += str.value;
-      } while (read != 0);
-
-      cstream.close();
-    }
-    catch (e) {
-      window.alert(e.message);
-    }
-  },
-
-  /**
    * Opens the preferences dialog
    */
   openPreferences : function gMozmillCrowd_openPreferences(event) {
@@ -249,6 +222,8 @@ var gMozmillCrowd = {
       // has been completed
       var logfile = this._storage.dir.clone();
       logfile.append("testrun.log");
+      if (logfile.exists())
+        logfile.remove(true);
 
       var args = ["python", script.path,
                   "--repository=" + repository,
@@ -272,7 +247,16 @@ var gMozmillCrowd = {
       args = args.concat(this._applications.selectedItem.value.bundle.path);
 
       this._storage.environment.run(args);
-      this.loadLogFile(logfile);
+
+      // Load log file and show its content
+      try {
+        gMozmillCrowd._output.value = Utils.readFile(logfile);
+        logfile.remove(true);
+      }
+      catch (ex) {
+        gMozmillCrowd._output.value = this._stringBundle.getFormattedString("storage.log_not_found",
+                                                                            [logfile.path]);
+      }
     }
     catch (e) {
       window.alert(e.message);
