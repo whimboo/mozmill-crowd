@@ -83,6 +83,8 @@ Environment.prototype = {
     var process = Cc["@mozilla.org/process/util;1"].
                   createInstance(Ci.nsIProcess);
     process.init(aScript);
+
+    Utils.log("Executing: '" + aScript.path + " " + aParams.join(" ") + "'");
     process.run(true, aParams, aParams.length);
   },
 

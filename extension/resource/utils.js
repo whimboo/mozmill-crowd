@@ -36,6 +36,8 @@
 
 var EXPORTED_SYMBOLS = [
   "gAppInfo", "gDirService", "gPrefService", "gWindowMediator", "gWindowWatcher",
+  "gConsoleService",
+  "log",
   "readFile", "readIniFile",
   "getPref", "setPref"
 ];
@@ -67,6 +69,21 @@ XPCOMUtils.defineLazyServiceGetter(this, "gWindowWatcher",
                                    "@mozilla.org/embedcomp/window-watcher;1",
                                    "nsIWindowWatcher");
 
+XPCOMUtils.defineLazyServiceGetter(this, "gConsoleService",
+                                   "@mozilla.org/consoleservice;1",
+                                   "nsIConsoleService");
+
+
+/////////////////////////////
+// SECTION: Logging
+
+/**
+ * Log a message to the Error Console
+ */
+function log(aMessage) {
+  gConsoleService.logStringMessage("MozMill Crowd: " + aMessage);
+}
+
 
 /////////////////////////////
 // SECTION: File handling
@@ -74,7 +91,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "gWindowWatcher",
 /**
  *
  */
-readFile : function readFile(aFile) {
+function readFile(aFile) {
   var fstream = Cc["@mozilla.org/network/file-input-stream;1"].
                 createInstance(Ci.nsIFileInputStream);
   var cstream = Cc["@mozilla.org/intl/converter-input-stream;1"].
