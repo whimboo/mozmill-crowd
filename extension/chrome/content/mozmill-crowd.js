@@ -19,6 +19,7 @@
  *
  * Contributor(s):
  *   Henrik Skupin <hskupin@mozilla.com> (Original Author)
+ *   Aaron Train <atrain@mozilla.com>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -45,6 +46,7 @@ var Utils = { }; Cu.import('resource://mozmill-crowd/utils.js', Utils);
 const AVAILABLE_TEST_RUNS = [{
   name : "General Test-run", script: "testrun_general.py" }, {
   name : "L10n Test-run", script: "testrun_l10n.py" }, {
+  name : "Endurance Test-run", script: "testrun_endurance.py" }, {
   name : "Add-ons Test-run", script: "testrun_addons.py" }
 ];
 
@@ -235,6 +237,14 @@ var gMozmillCrowd = {
         var trust_unsecure = Utils.getPref("extensions.mozmill-crowd.trust_unsecure_addons", false);
         if (trust_unsecure)
           args = args.concat("--with-untrusted");
+      }
+      
+      if (testrun == "testrun_endurance.py") {
+        var iterations = Utils.getPref("extensions.mozmill-crowd.endurance.iterations", 1);
+        var delay = Utils.getPref("extensions.mozmill-crowd.endurance.delay", "0.1");
+
+        args = args.concat("--iterations=" + iterations);
+        args = args.concat("--delay=" + delay);
       }
 
       // Send results to brasstack

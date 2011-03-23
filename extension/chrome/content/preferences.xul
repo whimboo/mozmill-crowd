@@ -21,6 +21,7 @@
    -
    - Contributor(s):
    -   Henrik Skupin <hskupin@mozilla.com> (Original Author)
+   -   Aaron Train <atrain@mozilla.com>
    -
    - Alternatively, the contents of this file may be used under the terms of
    - either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -72,6 +73,14 @@
                   name="extensions.mozmill-crowd.trust_unsecure_addons"
                   type="bool"/>
 
+      <!-- Endurance Test-run -->
+      <preference id="extensions.mozmill-crowd.endurance.delay"
+                  name="extensions.mozmill-crowd.endurance.delay"
+                  type="string"/>
+      <preference id="extensions.mozmill-crowd.endurance.iterations"
+                  name="extensions.mozmill-crowd.endurance.iterations"
+                  type="int"/>
+      
     </preferences>
 
     <groupbox id="mozmillTestsGroup">
@@ -112,7 +121,37 @@
                 preference="extensions.mozmill-crowd.trust_unsecure_addons"
                 onsynctopreference=""/>
     </groupbox>
+    
+    <groupbox id="enduranceGroup">
+      <caption label="&enduranceTestrun.label;"/>
 
+      <hbox align="baseline">
+       <label control="iterationsAmount"
+              value="&enduranceTestrunIterations.label;"/>
+       <spacer flex="1"/>
+       <textbox id="iterations"
+                accesskey="&enduranceTestrunIterations.accesskey;"
+                maxlength="6"
+                min="1"
+                size="6"
+                type="number"
+                preference="extensions.mozmill-crowd.endurance.iterations"/>
+      </hbox>
+      <hbox align="baseline">
+       <label control="delayAmount"
+              value="&enduranceTestrunDelay.label;"/>
+       <spacer flex="1"/>
+       <textbox id="delay"
+                accesskey="&enduranceTestrunDelay.accesskey;"
+                decimalplaces="1"
+                maxlength="6"
+                min="0.0"
+                size="6"
+                type="number"
+                preference="extensions.mozmill-crowd.endurance.delay"/>
+      </hbox>
+
+    </groupbox>
   </prefpane>
 
 </prefwindow>
