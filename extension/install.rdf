@@ -7,11 +7,11 @@
     <em:id>mozmill-crowd@quality.mozilla.org</em:id>
     <em:type>2</em:type>
     <em:name>MozMill Crowd</em:name>
-    <em:version>0.1.1</em:version>
+    <em:version>0.1.2</em:version>
     <em:creator>Mozilla QA</em:creator>
     <em:contributor>Henrik Skupin (http://www.hskupin.info)</em:contributor>
     <em:contributor>Aaron Train (http://www.aaronmt.com)</em:contributor>
-    <em:homepageURL>http://people.mozilla.com/~hskupin/mozmill-crowd/</em:homepageURL>
+    <em:homepageURL>https://wiki.mozilla.org/QA/Mozmill_Test_Automation/Crowd_Testing</em:homepageURL>
     <em:description>Mozmill tests executed from the crowd</em:description>
     <em:aboutURL>chrome://mozmill-crowd/content/about.xul</em:aboutURL>
     <em:optionsURL>chrome://mozmill-crowd/content/preferences.xul</em:optionsURL>
@@ -22,7 +22,7 @@
       <Description>
         <em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
         <em:minVersion>3.6</em:minVersion>
-        <em:maxVersion>4.0.*</em:maxVersion>
+        <em:maxVersion>4.2a1pre</em:maxVersion>
       </Description>
     </em:targetApplication>
   </Description>
