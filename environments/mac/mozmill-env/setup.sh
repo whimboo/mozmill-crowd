@@ -8,5 +8,15 @@ source $PWD/bin/activate
 
 # install dependencies
 easy_install --upgrade pip
+
+# The pip command to not compile binary files does not work. Install it manually.
+# pip install --upgrade --global-option="--pure" mercurial
+pip install --download=./ mercurial
+mkdir mercurial
+tar -C mercurial -xvf mercurial*.tar.gz --strip-components=1
+cd mercurial
+python setup.py --pure install
+cd ..
+rm -R mercurial*
+
 pip install --upgrade mozmill
-pip install --upgrade --global-option="--pure" mercurial
