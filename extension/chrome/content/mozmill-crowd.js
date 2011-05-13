@@ -181,7 +181,13 @@ var gMozmillCrowd = {
         if (containsSpace) {
           window.alert(this._stringBundle.getString("storage.path_has_space"));
         }
-      } while (containsSpace);
+
+        var isWritable = fp.file.isWritable();
+        if(!isWritable) {
+          window.alert(this._stringBundle.getString("storage.path_not_writable")); 
+        }
+
+      } while (containsSpace || !isWritable);
 
       Utils.setPref("extensions.mozmill-crowd.storage", fp.file, Ci.nsILocalFile);
       return fp.file;
