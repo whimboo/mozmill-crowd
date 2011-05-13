@@ -16,6 +16,8 @@
     <em:aboutURL>chrome://mozmill-crowd/content/about.xul</em:aboutURL>
     <em:optionsURL>chrome://mozmill-crowd/content/preferences.xul</em:optionsURL>
     <em:unpack>true</em:unpack>
+    <em:iconURL>chrome://mozmill-crowd/skin/icon_32x32.png</em:iconURL>
+    <em:icon64URL>chrome://mozmill-crowd/skin/icon_64x64.png</em:icon64URL>
 
     <!-- Firefox -->
     <em:targetApplication>
