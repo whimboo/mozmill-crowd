@@ -21,6 +21,7 @@
    -
    - Contributor(s):
    -   Henrik Skupin <hskupin@mozilla.com> (Original Author)
+   -   Aaron Train <atrain@mozilla.com>
    -
    - Alternatively, the contents of this file may be used under the terms of
    - either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -36,6 +37,8 @@
    -
    - ***** END LICENSE BLOCK ***** -->
 
+<?xml-stylesheet href="chrome://mozmill-crowd/skin/mozmill-crowd.css" type="text/css"?>
+
 <!DOCTYPE overlay [
 <!ENTITY % mozmillCrowdOverlayDTD SYSTEM "chrome://mozmill-crowd/locale/mozmill-crowd.dtd">
 %mozmillCrowdOverlayDTD;
@@ -44,6 +47,8 @@
 <overlay id="mcBrowserOverlay"
          xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 
+  <script type="application/javascript"
+          src="chrome://mozmill-crowd/content/overlay.js"/>
   <script>
     function openMozmillCrowd(event) {
       var wm = Cc["@mozilla.org/appshell/window-mediator;1"].
@@ -62,15 +67,34 @@
     }
   </script>
 
-  <!-- XXX: Only temporary -->
+  <commandset>
+    <command id="cmd_openMozmillCrowd" oncommand="openMozmillCrowd(event)"/>
+  </commandset>
+
   <keyset>
     <key id="mozmill-crowd_keyOpenDialog" modifiers="accel shift" key="c"
-         oncommand="openMozmillCrowd(event);"/>
+         command="cmd_openMozmillCrowd"/>
   </keyset>
 
   <menupopup id="menu_ToolsPopup">
-    <menuitem id="mozmill-crowd-openDialog" label="&menuOpenDialog.label;"
-              oncommand="openMozmillCrowd(event);"/>
+    <menuseparator />
+    <menuitem id="mozmill-crowd_openDialog" label="&menuOpenDialog.label;"
+              command="cmd_openMozmillCrowd" class="menuitem-iconic mozmill-crowd"/>
   </menupopup>
+
+  <!-- Firefox 4 Application Menu -->
+  <vbox id="appmenuPrimaryPane">
+    <menuitem id="mozmill-crowd_appMenu" label="&menuOpenDialog.label;"
+              command="cmd_openMozmillCrowd" insertafter="appmenu_webDeveloper"
+              class="menuitem-iconic mozmill-crowd"/>
+  </vbox>
+
+  <!-- Mozmill Crowd Button -->
+  <toolbarpalette id="BrowserToolbarPalette">
+    <toolbarbutton id="mozmill-crowd_toolbarButton" label="&menuOpenDialog.label;"
+                   tooltiptext="&toolbarButton.tooltip;"
+                   class="toolbarbutton-1 chromeclass-toolbar-additional mozmill-crowd"
+                   command="cmd_openMozmillCrowd"/>
+  </toolbarpalette>
 
 </overlay>

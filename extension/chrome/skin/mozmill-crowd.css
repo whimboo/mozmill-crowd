@@ -2,3 +2,8 @@ menulist {
   width: 20em;
   -moz-margin-end: 10px;
 }
+
+.menuitem-iconic.mozmill-crowd,
+.toolbarbutton-1.mozmill-crowd {
+  list-style-image: url("chrome://mozmill-crowd/skin/icon_16x16.png") !important;
+}

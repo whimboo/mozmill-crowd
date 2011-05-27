@@ -1,8 +1,11 @@
 <!-- main menu entry for browser window -->
-<!ENTITY menuOpenDialog.label                            "MozMill Crowd">
+<!ENTITY menuOpenDialog.label                            "Mozmill Crowd">
+
+<!-- toolbar button entry for browser window -->
+<!ENTITY toolbarButton.tooltip                           "Start Mozmill Crowd">
 
 <!-- Mozmill crowd dialog -->
-<!ENTITY windowTitle.label                               "MozMill Crowd Testing">
+<!ENTITY windowTitle.label                               "Mozmill Crowd Testing">
 <!ENTITY closeDialogButton.label                         "Close">
 <!ENTITY closeDialogButton.accesskey                     "C">
 
