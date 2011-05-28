@@ -11,7 +11,7 @@
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is MozMill Crowd code.
+ * The Original Code is Mozmill Crowd code.
  *
  * The Initial Developer of the Original Code is the Mozilla Foundation.
  * Portions created by the Initial Developer are Copyright (C) 2010
@@ -81,7 +81,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "gConsoleService",
  * Log a message to the Error Console
  */
 function log(aMessage) {
-  gConsoleService.logStringMessage("MozMill Crowd: " + aMessage);
+  gConsoleService.logStringMessage("Mozmill Crowd: " + aMessage);
 }
 
 

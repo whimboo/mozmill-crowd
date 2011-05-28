@@ -11,7 +11,7 @@
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is MozMill Crowd code.
+ * The Original Code is Mozmill Crowd code.
  *
  * The Initial Developer of the Original Code is the Mozilla Foundation.
  * Portions created by the Initial Developer are Copyright (C) 2010
@@ -143,7 +143,7 @@ Storage.prototype = {
    *
    */
   download : function Storage_download(aURL, aFile) {
-    var window = Utils.gWindowMediator.getMostRecentWindow("MozMill:Crowd");
+    var window = Utils.gWindowMediator.getMostRecentWindow("Mozmill:Crowd");
     window.openDialog("chrome://mozmill-crowd/content/download.xul",
                       "Download",
                       "dialog, modal, centerscreen, titlebar=no",
@@ -155,7 +155,7 @@ Storage.prototype = {
    *
    */
   extract : function Storage_extract(aFile, aDir) {
-    var window = Utils.gWindowMediator.getMostRecentWindow("MozMill:Crowd");
+    var window = Utils.gWindowMediator.getMostRecentWindow("Mozmill:Crowd");
     window.openDialog("chrome://mozmill-crowd/content/unpack.xul",
                       "Extract",
                       "dialog, modal, centerscreen, titlebar=no",
