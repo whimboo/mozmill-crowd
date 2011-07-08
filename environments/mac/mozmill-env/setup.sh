@@ -11,7 +11,7 @@ easy_install --upgrade pip
 
 # The pip command to not compile binary files does not work. Install it manually.
 # pip install --upgrade --global-option="--pure" mercurial
-pip install --download=./ mercurial
+pip install --download=./ mercurial==1.7.3
 mkdir mercurial
 tar -C mercurial -xvf mercurial*.tar.gz --strip-components=1
 cd mercurial

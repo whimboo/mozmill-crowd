@@ -7,7 +7,7 @@ SET MOZMILL=%MOZMILLDRIVE%%MOZMILLPATH%
 SET PATH=%PATH%;%MOZMILL%\python26\;%MOZMILL%\python26\Scripts
 
 rem Update installation paths
-easy_install mercurial
+easy_install --upgrade pip
 
 rem Install packages
-easy_install -U mozrunner jsbridge mozmill
+pip install --upgrade mozmill
