@@ -44,7 +44,7 @@ var Storage = { }; Cu.import('resource://mozmill-crowd/storage.js', Storage);
 var Utils = { }; Cu.import('resource://mozmill-crowd/utils.js', Utils);
 
 const AVAILABLE_TEST_RUNS = [{
-  name : "General Test-run", script: "testrun_general.py" }, {
+  name : "Functional Test-run", script: "testrun_functional.py" }, {
   name : "L10n Test-run", script: "testrun_l10n.py" }, {
   name : "Endurance Test-run", script: "testrun_endurance.py" }, {
   name : "Add-ons Test-run", script: "testrun_addons.py" }
