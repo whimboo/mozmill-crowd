@@ -247,10 +247,12 @@ var gMozmillCrowd = {
       
       if (testrun == "testrun_endurance.py") {
         var iterations = Utils.getPref("extensions.mozmill-crowd.endurance.iterations", 1);
+        var entities = Utils.getPref("extensions.mozmill-crowd.endurance.entities", 1);
         var delay = Utils.getPref("extensions.mozmill-crowd.endurance.delay", "0.1");
         var restart = Utils.getPref("extensions.mozmill-crowd.endurance.restart", true);
 
         args = args.concat("--iterations=" + iterations);
+        args = args.concat("--entities=" + entities);
         args = args.concat("--delay=" + delay);
 
         if (!restart)

@@ -77,6 +77,9 @@
       <preference id="extensions.mozmill-crowd.endurance.delay"
                   name="extensions.mozmill-crowd.endurance.delay"
                   type="string"/>
+      <preference id="extensions.mozmill-crowd.endurance.entities"
+                  name="extensions.mozmill-crowd.endurance.entities"
+                  type="int"/>
       <preference id="extensions.mozmill-crowd.endurance.iterations"
                   name="extensions.mozmill-crowd.endurance.iterations"
                   type="int"/>
@@ -129,7 +132,7 @@
       <caption label="&enduranceTestrun.label;"/>
 
       <hbox align="baseline">
-       <label control="iterationsAmount"
+       <label control="iterations"
               value="&enduranceTestrunIterations.label;"/>
        <spacer flex="1"/>
        <textbox id="iterations"
@@ -141,7 +144,19 @@
                 preference="extensions.mozmill-crowd.endurance.iterations"/>
       </hbox>
       <hbox align="baseline">
-       <label control="delayAmount"
+       <label control="entities"
+              value="&enduranceTestrunEntities.label;"/>
+       <spacer flex="1"/>
+       <textbox id="entities"
+                accesskey="&enduranceTestrunEntities.accesskey;"
+                maxlength="6"
+                min="1"
+                size="6"
+                type="number"
+                preference="extensions.mozmill-crowd.endurance.entities"/>
+      </hbox>
+      <hbox align="baseline">
+       <label control="delay"
               value="&enduranceTestrunDelay.label;"/>
        <spacer flex="1"/>
        <textbox id="delay"

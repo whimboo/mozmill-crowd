@@ -1,4 +1,5 @@
 pref("extensions.mozmill-crowd.endurance.delay", "0.1");
+pref("extensions.mozmill-crowd.endurance.entities", 1);
 pref("extensions.mozmill-crowd.endurance.iterations", 1);
 pref("extensions.mozmill-crowd.endurance.restart", true);
 pref("extensions.mozmill-crowd.firstrun", true);

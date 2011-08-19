@@ -18,6 +18,8 @@
 <!ENTITY enduranceTestrun.label              "Endurance tests:">
 <!ENTITY enduranceTestrunDelay.label         "Time to wait before each iteration (default: 0.1s):">
 <!ENTITY enduranceTestrunDelay.accesskey     "W">
+<!ENTITY enduranceTestrunEntities.label      "Entity count for each iteration (default: 1):">
+<!ENTITY enduranceTestrunEntities.accesskey  "E">
 <!ENTITY enduranceTestrunIterations.label    "Iteration count for each test (default: 1):">
 <!ENTITY enduranceTestrunIterations.accesskey "I">
 <!ENTITY enduranceTestrunRestart.label       "Restart between each test">
