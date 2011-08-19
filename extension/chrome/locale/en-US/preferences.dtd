@@ -20,3 +20,5 @@
 <!ENTITY enduranceTestrunDelay.accesskey     "W">
 <!ENTITY enduranceTestrunIterations.label    "Iteration count for each test (default: 1):">
 <!ENTITY enduranceTestrunIterations.accesskey "I">
+<!ENTITY enduranceTestrunRestart.label       "Restart between each test">
+<!ENTITY enduranceTestrunRestart.accesskey   "R">

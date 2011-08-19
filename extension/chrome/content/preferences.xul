@@ -80,6 +80,9 @@
       <preference id="extensions.mozmill-crowd.endurance.iterations"
                   name="extensions.mozmill-crowd.endurance.iterations"
                   type="int"/>
+      <preference id="extensions.mozmill-crowd.endurance.restart"
+                  name="extensions.mozmill-crowd.endurance.restart"
+                  type="bool"/>
       
     </preferences>
 
@@ -149,6 +152,12 @@
                 size="6"
                 type="number"
                 preference="extensions.mozmill-crowd.endurance.delay"/>
+      </hbox>
+      <hbox align="baseline">
+       <checkbox id="restart"
+                 label="&enduranceTestrunRestart.label;"
+                 accesskey="&enduranceTestrunRestart.accesskey;"
+                 preference="extensions.mozmill-crowd.endurance.restart"/>
       </hbox>
 
     </groupbox>

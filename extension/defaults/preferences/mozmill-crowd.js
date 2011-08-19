@@ -1,5 +1,6 @@
 pref("extensions.mozmill-crowd.endurance.delay", "0.1");
 pref("extensions.mozmill-crowd.endurance.iterations", 1);
+pref("extensions.mozmill-crowd.endurance.restart", true);
 pref("extensions.mozmill-crowd.firstrun", true);
 pref("extensions.mozmill-crowd.report.send", false);
 pref("extensions.mozmill-crowd.report.server", "http://mozmill-crowd.brasstacks.mozilla.com/db/");

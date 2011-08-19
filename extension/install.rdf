@@ -11,6 +11,7 @@
     <em:creator>Mozilla QA</em:creator>
     <em:contributor>Henrik Skupin (http://www.hskupin.info)</em:contributor>
     <em:contributor>Aaron Train (http://www.aaronmt.com)</em:contributor>
+    <em:contributor>Dave Hunt (http://www.blargon7.com)</em:contributor>
     <em:homepageURL>https://wiki.mozilla.org/QA/Mozmill_Test_Automation/Crowd_Testing</em:homepageURL>
     <em:description>Mozmill tests executed from the crowd</em:description>
     <em:aboutURL>chrome://mozmill-crowd/content/about.xul</em:aboutURL>

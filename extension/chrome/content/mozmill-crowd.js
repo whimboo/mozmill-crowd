@@ -248,9 +248,13 @@ var gMozmillCrowd = {
       if (testrun == "testrun_endurance.py") {
         var iterations = Utils.getPref("extensions.mozmill-crowd.endurance.iterations", 1);
         var delay = Utils.getPref("extensions.mozmill-crowd.endurance.delay", "0.1");
+        var restart = Utils.getPref("extensions.mozmill-crowd.endurance.restart", true);
 
         args = args.concat("--iterations=" + iterations);
         args = args.concat("--delay=" + delay);
+
+        if (!restart)
+          args = args.concat("--no-restart");
       }
 
       // Send results to brasstack
