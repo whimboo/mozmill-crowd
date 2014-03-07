@@ -44,10 +44,11 @@ var Storage = { }; Cu.import('resource://mozmill-crowd/storage.js', Storage);
 var Utils = { }; Cu.import('resource://mozmill-crowd/utils.js', Utils);
 
 const AVAILABLE_TEST_RUNS = [{
-  name : "Functional Test-run", script: "testrun_functional.py" }, {
-  name : "L10n Test-run", script: "testrun_l10n.py" }, {
-  name : "Endurance Test-run", script: "testrun_endurance.py" }, {
-  name : "Add-ons Test-run", script: "testrun_addons.py" }
+  name : "Functional Test-run", script: "testrun_functional" }, {
+  name : "Remote Test-run", script: "testrun_remote" }, {
+  name : "L10n Test-run", script: "testrun_l10n" }, {
+  name : "Endurance Test-run", script: "testrun_endurance" }, {
+  name : "Add-ons Test-run", script: "testrun_addons" }
 ];
 
 
@@ -65,6 +66,11 @@ var gMozmillCrowd = {
     this._output = document.getElementById("testrunResults");
     this._execButton = document.getElementById("startStopTestrun");
     this._stringBundle = document.getElementById("mozmill-crowd-stringbundle");
+
+    var dir = this.getStorageLocation();
+    this._storage = new Storage.Storage(dir);
+    this._workspace = this._storage.dir.clone();
+    this._workspace.append("workspace");
 
     // Add the current application as default
     this.addApplicationToList(new Application.Application());
@@ -127,22 +133,6 @@ var gMozmillCrowd = {
     }
   },
 
-  checkAndSetup : function gMozmillCrowd_checkAndSetup() {
-    var dir = this.getStorageLocation();
-    this._storage = new Storage.Storage(dir);
-
-    var path = this._storage.dir.clone();
-    path.append("mozmill-automation");
-
-    // Until we have a reliable way to pull from the repository we will clone
-    // it again for now.
-    if (path.exists())
-      path.remove(true);
-
-    var repository = Utils.getPref("extensions.mozmill-crowd.repositories.mozmill-automation", "");
-    this._storage.environment.run(["hg", "clone", repository, path.path]);
- },
-
   /**
    * XXX: Stop a test-run before closing the dialog
    */
@@ -162,9 +152,13 @@ var gMozmillCrowd = {
     // Note: We do not allow spaces in the path due to issues with virtualenv
     //       (See https://bugzilla.mozilla.org/show_bug.cgi?id=623224)
     if (!dir) {
-      window.alert(this._stringBundle.getString("storage.path_not_found"));
+      Services.prompt.alert(null,
+                            this._stringBundle.getString("storage.select_storage"),
+                            this._stringBundle.getString("storage.path_not_found"));
     } else if (dir.path.search(/ /) != -1) {
-      window.alert(this._stringBundle.getString("storage.path_has_space"));
+      Services.prompt.alert(null,
+                            this._stringBundle.getString("storage.select_storage"),
+                            this._stringBundle.getString("storage.path_has_space"));
     }
 
     if (!dir || (dir.path.search(/ /) != -1)) {
@@ -217,13 +211,7 @@ var gMozmillCrowd = {
       chromeTimeoutValue = Utils.getPref(chromeTimeoutPref, chromeTimeoutValue);
       Utils.setPref(chromeTimeoutPref, -1);
 
-      this.checkAndSetup();
-
       var testrun = this._testruns.selectedItem.value;
-      var script = this._storage.dir.clone();
-      script.append("mozmill-automation");
-      script.append(testrun);
-
       var repository = Utils.getPref("extensions.mozmill-crowd.repositories.mozmill-tests", "");
 
       // Create a log which can be shown in the output window after the test-run
@@ -233,19 +221,23 @@ var gMozmillCrowd = {
       if (logfile.exists())
         logfile.remove(true);
 
-      var args = ["python", script.path,
+      if (this._workspace.exists()) {
+        this._workspace.remove(true);
+      }
+
+      var args = [testrun,
                   "--repository=" + repository,
                   "--logfile=" + logfile.path,
-                  "--screenshot-path=" + this._storage.screenshotPath.path];
+                  "--workspace=" + this._workspace.path];
 
       // XXX: Bit hacky at the moment
-      if (testrun == "testrun_addons.py") {
+      if (testrun == "testrun_addons") {
         var trust_unsecure = Utils.getPref("extensions.mozmill-crowd.trust_unsecure_addons", false);
         if (trust_unsecure)
           args = args.concat("--with-untrusted");
       }
       
-      if (testrun == "testrun_endurance.py") {
+      if (testrun == "testrun_endurance") {
         var iterations = Utils.getPref("extensions.mozmill-crowd.endurance.iterations", 1);
         var entities = Utils.getPref("extensions.mozmill-crowd.endurance.entities", 1);
         var delay = Utils.getPref("extensions.mozmill-crowd.endurance.delay", "0.1");

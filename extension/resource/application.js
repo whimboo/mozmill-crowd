@@ -132,9 +132,6 @@ Application.prototype = {
    * @returns Path of the application
    */
   currentAppBinary: function Application_currentAppBinary() {
-    var binary = this._dirSrv.get("CurProcD", Ci.nsIFile);
-    binary.append(BINARIES[this.XULRuntime.OS]);
-
-    return binary;
+    return this._dirSrv.get("XREExeF", Ci.nsIFile);
   }
 }

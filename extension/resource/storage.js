@@ -51,9 +51,9 @@ var Utils = { }; Cu.import('resource://mozmill-crowd/utils.js', Utils);
 // XXX: For now lets use constants. Has to be moved out to a web service which
 // will return the latest package and the hash
 const ENVIRONMENT_DATA = {
-  Darwin : { url : "https://mozqa.com/mozmill-env/mac-latest.zip" },
-  Linux :  { url : "https://mozqa.com/mozmill-env/linux-latest.zip" },
-  WINNT :  { url : "https://mozqa.com/mozmill-env/windows-latest.zip" }
+  Darwin : { url : "https://mozqa.com/mozmill-env/latest-mac.zip" },
+  Linux :  { url : "https://mozqa.com/mozmill-env/latest-linux.zip" },
+  WINNT :  { url : "https://mozqa.com/mozmill-env/latest-windows.zip" }
 };
 
 // XXX: Has to be removed once we use the PHP script to download the environment
@@ -111,16 +111,6 @@ Storage.prototype = {
       this._createEnvironment();
 
     return this._environment;
-  },
-
-  /**
-   *
-   */
-  get screenshotPath() {
-    var path = this.dir.clone();
-    path.append("screenshots");
-
-    return path;
   },
 
   /**
