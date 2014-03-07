@@ -94,7 +94,7 @@ Downloader = {
 
       // Save URL as target
       this._persist.progressListener = new DownloaderListener();
-      this._persist.saveURI(uri, null, null, null, null, this.target);
+      this._persist.saveURI(uri, null, null, null, null, this.target, null);
     }
     catch (ex) {
       window.alert(ex);
