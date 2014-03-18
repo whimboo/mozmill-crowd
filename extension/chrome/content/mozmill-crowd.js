@@ -39,6 +39,9 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
+Cu.import("resource://gre/modules/FileUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
+
 var Application = { }; Cu.import('resource://mozmill-crowd/application.js', Application);
 var Storage = { }; Cu.import('resource://mozmill-crowd/storage.js', Storage);
 var Utils = { }; Cu.import('resource://mozmill-crowd/utils.js', Utils);
@@ -167,18 +170,35 @@ var gMozmillCrowd = {
       fp.init(window, "Select a Folder", Ci.nsIFilePicker.modeGetFolder);
 
       do {
+        // Preset the default location to users profile directory
+        var storage_dir = Utils.gDirService.get("ProfD", Ci.nsIFile);
+        storage_dir.append("mozmill-crowd");
+        if (!storage_dir.exists()) {
+          storage_dir.create(Ci.nsILocalFile.DIRECTORY_TYPE,
+                             FileUtils.PERMS_DIRECTORY);
+        }
+        fp.defaultString = "mozmill-crowd";
+        fp.displayDirectory = storage_dir.parent;
+
         if (fp.show() !== Ci.nsIFilePicker.returnOK) {
           throw new Error(this._stringBundle.getString("execution.user_abort"));
+        }
+        if (fp.file.path !== storage_dir.path) {
+          storage_dir.remove(true);
         }
 
         var containsSpace = fp.file.path.search(/ /) != -1;
         if (containsSpace) {
-          window.alert(this._stringBundle.getString("storage.path_has_space"));
+          Services.prompt.alert(null,
+                                this._stringBundle.getString("storage.select_storage"),
+                                this._stringBundle.getString("storage.path_has_space"));
         }
 
         var isWritable = fp.file.isWritable();
         if(!isWritable) {
-          window.alert(this._stringBundle.getString("storage.path_not_writable")); 
+          Services.prompt.alert(null,
+                                this._stringBundle.getString("storage.select_storage"),
+                                this._stringBundle.getString("storage.path_not_writable"));
         }
 
       } while (containsSpace || !isWritable);
