@@ -36,7 +36,9 @@
 
 var Cc = Components.classes;
 var Ci = Components.interfaces;
+var Cu = Components.utils;
 
+Cu.import("resource://gre/modules/Downloads.jsm");
 
 Downloader = {
   _persist : null,
@@ -83,18 +85,38 @@ Downloader = {
 
       // If target doesn't exist, create it
       if (!this.target.exists()) {
-        this.target.create(0x00, 0644);
+        this.target.create(Ci.nsIFile.NORMAL_FILE_TYPE, parseInt("0666", 8));
       }
 
-      this._persist = Cc["@mozilla.org/embedding/browser/nsWebBrowserPersist;1"].
-                      createInstance(Ci.nsIWebBrowserPersist);
-      this._persist.persistFlags = Ci.nsIWebBrowserPersist.PERSIST_FLAGS_REPLACE_EXISTING_FILES |
-                                   Ci.nsIWebBrowserPersist.PERSIST_FLAGS_FROM_CACHE |
-                                   Ci.nsIWebBrowserPersist.PERSIST_FLAGS_CLEANUP_ON_FAILURE;
+      Downloads.createDownload({'source': uri, 'target': this.target}).then((aDownload) => {
+        var maxMB = -1;
+        var currentMB = -1;
+        aDownload.onchange = function () {
+          if (aDownload.succeeded) {
+            var bytes = aDownload.hasProgress ?
+                        aDownload.totalBytes : aDownload.currentBytes;
+            maxMB = bytes / 1024 / 1024;
+          } else if (aDownload.hasProgress) {
+            // If the final size and progress are known, use them.
+            maxMB = aDownload.totalBytes / 1024 / 1024;
+            currentMB = aDownload.currentBytes / 1024 / 1024;
+          } else {
+            // The download final size and progress percentage is unknown.
+            Downloader.progressMeter.mode =  "undetermined";
+          }
+            var string = Downloader.stringBundle.getFormattedString("download.progress", [currentMB, maxMB]);
+            Downloader.progressLabel.value = string;
 
-      // Save URL as target
-      this._persist.progressListener = new DownloaderListener();
-      this._persist.saveURI(uri, null, null, null, null, this.target, null);
+            // Update progress meter values
+            Downloader.progressMeter.max = maxMB;
+            Downloader.progressMeter.value = currentMB;
+        };
+        aDownload.start();
+        aDownload.whenSucceeded().then(() => {
+           Downloader.progressLabel.value = Downloader.stringBundle.getString("download.finished");
+           Downloader.stop();
+        });
+      });
     }
     catch (ex) {
       window.alert(ex);
@@ -111,55 +133,3 @@ Downloader = {
     }, 500);
   }
 };
-
-
-function DownloaderListener() {
-}
-
-DownloaderListener.prototype = {
-
-  QueryInterface : function(aIID) {
-    if (aIID.equals(Components.interfaces.nsIWebProgressListener) ||
-        aIID.equals(Components.interfaces.nsISupportsWeakReference) ||
-        aIID.equals(Components.interfaces.nsISupports))
-      return this;
-    throw Components.results.NS_NOINTERFACE;
-  },
-
-  onStateChange : function(aWebProgress, aRequest, aStateFlags, aStatus) {
-    if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP) {
-      Downloader.progressLabel.value = Downloader.stringBundle.getString("download.finished");
-      Downloader.stop();
-    }
-  },
-
-  onProgressChange : function(aWebProgress, aRequest,
-                              aCurSelfProgress, aMaxSelfProgress,
-                              aCurTotalProgress, aMaxTotalProgress) {
-
-    // If the content size is not known switch to the undetermined display
-    if (aMaxSelfProgress == -1)
-      Downloader.progressMeter.mode =  "undetermined";
-
-    // Update the label
-    var curMB = aCurSelfProgress / 1024 / 1024;
-    var maxMB = aMaxSelfProgress / 1024 / 1024;
-    var string = Downloader.stringBundle.getFormattedString("download.progress",
-                                                            [curMB.toFixed(2),
-                                                             maxMB.toFixed(2)]);
-    Downloader.progressLabel.value = string;
-
-    // Update progress meter values
-    Downloader.progressMeter.max = aMaxSelfProgress;
-    Downloader.progressMeter.value = aCurSelfProgress;
-  },
-
-  onLocationChange : function(aWebProgress, aRequest, aLocation) {
-  },
-
-  onStatusChange : function(aWebProgress, aRequest, aStatus, aMessage) {
-  },
-
-  onSecurityChange : function(aWebProgress, aRequest, aState) {
-  }
-}
