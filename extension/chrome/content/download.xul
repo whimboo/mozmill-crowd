@@ -59,7 +59,7 @@
   <label id="download-progress-label"
          control="download-progress"/>
   <progressmeter id="download-progress"
-                 mode="determined"
+                 mode="undetermined"
                  style="&downloadProgress.width;"/>
 
 </dialog>
