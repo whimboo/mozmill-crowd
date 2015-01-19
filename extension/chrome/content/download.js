@@ -40,6 +40,8 @@ var Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Downloads.jsm");
 
+const MEGABYTE = 1048576;
+
 Downloader = {
   _persist : null,
   stringBundle : null,
@@ -89,31 +91,33 @@ Downloader = {
       }
 
       Downloads.createDownload({'source': uri, 'target': this.target}).then((aDownload) => {
-        var maxMB = -1;
-        var currentMB = -1;
+        var maxMB = 0;
+        var currentMB = 0;
+
+        // The download final size and progress percentage is unknown.
+        Downloader.progressMeter.mode =  "undetermined";
+
         aDownload.onchange = function () {
-          if (aDownload.succeeded) {
-            var bytes = aDownload.hasProgress ?
-                        aDownload.totalBytes : aDownload.currentBytes;
-            maxMB = bytes / 1024 / 1024;
-          } else if (aDownload.hasProgress) {
-            // If the final size and progress are known, use them.
-            maxMB = aDownload.totalBytes / 1024 / 1024;
-            currentMB = aDownload.currentBytes / 1024 / 1024;
-          } else {
-            // The download final size and progress percentage is unknown.
-            Downloader.progressMeter.mode =  "undetermined";
-          }
-            var string = Downloader.stringBundle.getFormattedString("download.progress", [currentMB, maxMB]);
+          if (aDownload.hasProgress) {
+            if (!maxMB) {
+              maxMB = aDownload.totalBytes / MEGABYTE;
+              Downloader.progressMeter.max = maxMB;
+            }
+
+            currentMB = aDownload.currentBytes / MEGABYTE;
+            var string = Downloader.stringBundle.getFormattedString("download.progress",
+                                                                    [currentMB.toFixed(2),
+                                                                     maxMB.toFixed(2)]);
             Downloader.progressLabel.value = string;
 
             // Update progress meter values
-            Downloader.progressMeter.max = maxMB;
             Downloader.progressMeter.value = currentMB;
+          }
         };
         aDownload.start();
         aDownload.whenSucceeded().then(() => {
-           Downloader.progressLabel.value = Downloader.stringBundle.getString("download.finished");
+           Downloader.progressLabel.value = Downloader.stringBundle
+                                            .getString("download.finished");
            Downloader.stop();
         });
       });
