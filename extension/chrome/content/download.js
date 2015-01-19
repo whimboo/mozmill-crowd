@@ -40,7 +40,7 @@ var Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Downloads.jsm");
 
-const MEGABYTE = 1048576;
+const MEGABYTE_TO_BYTE = 1048576;
 
 Downloader = {
   _persist : null,
@@ -94,17 +94,15 @@ Downloader = {
         var maxMB = 0;
         var currentMB = 0;
 
-        // The download final size and progress percentage is unknown.
-        Downloader.progressMeter.mode =  "undetermined";
-
         aDownload.onchange = function () {
           if (aDownload.hasProgress) {
             if (!maxMB) {
-              maxMB = aDownload.totalBytes / MEGABYTE;
+              maxMB = aDownload.totalBytes / MEGABYTE_TO_BYTE;
+              Downloader.progressMeter.mode =  "determined";
               Downloader.progressMeter.max = maxMB;
             }
 
-            currentMB = aDownload.currentBytes / MEGABYTE;
+            currentMB = aDownload.currentBytes / MEGABYTE_TO_BYTE;
             var string = Downloader.stringBundle.getFormattedString("download.progress",
                                                                     [currentMB.toFixed(2),
                                                                      maxMB.toFixed(2)]);
@@ -114,6 +112,7 @@ Downloader = {
             Downloader.progressMeter.value = currentMB;
           }
         };
+
         aDownload.start();
         aDownload.whenSucceeded().then(() => {
            Downloader.progressLabel.value = Downloader.stringBundle
